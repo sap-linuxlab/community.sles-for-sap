@@ -9,10 +9,9 @@
 
 - name: Register with registercloudguest
   ansible.builtin.command: "registercloudguest -r {{ reg_code }}"
-  when: >
-    int_fact_registration_status != "Registered"
-    and
-    not use_suseconnect
+  when:
+    - not use_suseconnect | bool
+    - int_fact_registration_status != "Registered"
   register: int_reg_registercloudguest_result
   until: int_reg_registercloudguest_result is not failed
   retries: 6
@@ -20,10 +19,9 @@
 
 - name: Register with SUSEConnect
   ansible.builtin.command: "SUSEConnect -r {{ reg_code }}"
-  when: >
-    use_suseconnect
-    and
-    int_fact_registration_status != "Registered"
+  when:
+    - use_suseconnect | bool
+    - int_fact_registration_status != "Registered"
   register: int_reg_suseconnect_result
   until: int_reg_suseconnect_result is not failed
   retries: 6
