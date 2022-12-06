@@ -1,0 +1,10 @@
+---
+- name: Use sles_register role
+  hosts: all
+  remote_user: sstringer
+  become: true
+  vars:
+    reg_code: << MY_REG_CODE >>
+    use_suseconnect: true
+  roles:
+    - { role: ../roles/sles_register }

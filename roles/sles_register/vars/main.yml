@@ -1,0 +1,6 @@
+# internal variables
+
+int_registration_type:
+  R0: System appears to be registered, registration will not be attempted.
+  UR: Registration required, registercloudguest will be used
+  US: Registration required, SUSEConnect will be used

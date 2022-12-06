@@ -1,0 +1,74 @@
+---
+- name: Assert that reg_code is declared
+  ansible.builtin.assert:
+    that: reg_code is defined
+    fail_msg: >
+      The variable 'reg_code' must be defined in order to use this role. Ensure
+      that the variable is defined when calling the role.
+
+- name: Check for registercloudguest
+  ansible.builtin.command: which registercloudguest
+  register: int_reg_registercloudguest
+  failed_when: false
+  changed_when: false
+  check_mode: false
+
+- name: Check for SUSEConnect
+  ansible.builtin.command: which SUSEConnect
+  register: int_reg_suseconnect
+  failed_when: false
+  changed_when: false
+  check_mode: false
+
+- name: Assert that registercloudguest is available
+  ansible.builtin.assert:
+    that: >
+      int_reg_registercloudguest.rc == 0
+    fail_msg: >
+      registercloudguest was not found. registercloudguest should be used when
+      registering cloud based clients. Ensure that it is installed or set the
+      variable 'use_suseconnect' to true.
+    success_msg: registercloudguest was found
+  when: not use_suseconnect | bool
+
+- name: Assert that SUSEConnect is available
+  ansible.builtin.assert:
+    that: >
+      int_reg_suseconnect.rc == 0
+    fail_msg: >
+      SUSEConnect was not found.  SUSEConnect is required to support actions for
+      any type of registration.  Ensure that SUSEConnect is installed
+    success_msg: SUSEConnect found
+
+# SUSEConnect -s will return, in json, all registered channels, if any
+# registered channels are found, it's a very good indication that the system is
+# already registered.
+# However, if the command fails to run, the system is almost certainly not
+# registered
+- name: Get SUSEConnect status
+  ansible.builtin.command: SUSEConnect -s
+  register: int_reg_suseconnect_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Get registration status
+  ansible.builtin.set_fact:
+    int_fact_registration_status: "{{
+      int_reg_suseconnect_status.stdout |
+      from_json |
+      community.general.json_query(q1) |
+      first
+      }}"
+  vars:
+    q1: "[?identifier=='{{ ansible_distribution }}' && version=='{{ ansible_distribution_version }}'].status"
+  when: int_reg_suseconnect_status.rc == 0
+
+- name: Set Registration type
+  ansible.builtin.set_fact:
+    reg_type: >-
+      {% if int_fact_registration_status == 'Registered' %}R0
+      {% elif int_fact_registration_status != 'Registered' and use_suseconnect == 'true' %}US
+      {% elif int_fact_registration_status != 'Registered' and int_reg_registercloudguest.rc == 0 %}UR
+      {% else %}US
+      {% endif %}

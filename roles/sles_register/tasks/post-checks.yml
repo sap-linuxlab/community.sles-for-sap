@@ -1,0 +1,32 @@
+---
+- name: Get current SUSEConnect status
+  ansible.builtin.command: SUSEConnect -s
+  register: int_reg_post_registration_suseconnect_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Get registration status
+  ansible.builtin.set_fact:
+    int_fact_post_registration_status: "{{
+      int_reg_post_registration_suseconnect_status.stdout |
+      from_json |
+      community.general.json_query(q1) |
+      first
+      }}"
+  vars:
+    q1: "[?identifier=='{{ ansible_distribution }}' && version=='{{ ansible_distribution_version }}'].status"
+  when:
+    - not ansible_check_mode
+    - int_reg_post_registration_suseconnect_status.rc == 0
+
+
+- name: Assert that registration is was successful
+  ansible.builtin.assert:
+    that: int_fact_post_registration_status == 'Registered'
+    success_msg: "The system is registered"
+    fail_msg: >
+      Registration appears to have been unsuccessful, check the output of the
+      registration command and ensure the registration code is correct.
+  when: not ansible_check_mode

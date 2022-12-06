@@ -1,0 +1,30 @@
+---
+# By default, registercloudguest is used to register the hosts in the play
+# If registercloudguest is not found the role will fail unless use_suseconnect
+# is set to 'true'.  If use_suseconnect is true, registercloudguest is not used
+# and SUSEConnect is used instead.
+- name: Show actions
+  ansible.builtin.debug:
+    msg: "{{ int_registration_type[reg_type | trim] }}"
+
+- name: Register with registercloudguest
+  ansible.builtin.command: "registercloudguest -r {{ reg_code }}"
+  when: >
+    int_fact_registration_status != "Registered"
+    and
+    not use_suseconnect
+  register: int_reg_registercloudguest_result
+  until: int_reg_registercloudguest_result is not failed
+  retries: 6
+  delay: 10
+
+- name: Register with SUSEConnect
+  ansible.builtin.command: "SUSEConnect -r {{ reg_code }}"
+  when: >
+    use_suseconnect
+    and
+    int_fact_registration_status != "Registered"
+  register: int_reg_suseconnect_result
+  until: int_reg_suseconnect_result is not failed
+  retries: 6
+  delay: 10
