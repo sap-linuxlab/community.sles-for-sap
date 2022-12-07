@@ -40,31 +40,7 @@
       any type of registration.  Ensure that SUSEConnect is installed
     success_msg: SUSEConnect found
 
-# SUSEConnect -s will return, in json, all registered channels, if any
-# registered channels are found, it's a very good indication that the system is
-# already registered.
-# However, if the command fails to run, the system is almost certainly not
-# registered
-- name: Get SUSEConnect status
-  ansible.builtin.command: SUSEConnect -s
-  register: int_reg_suseconnect_status
-  changed_when: false
-  failed_when: false
-  check_mode: false
-
-- name: Get registration status
-  ansible.builtin.set_fact:
-    int_fact_registration_status: "{{
-      int_reg_suseconnect_status.stdout |
-      from_json |
-      community.general.json_query(q1) |
-      first
-      }}"
-  vars:
-    q1: "[?identifier=='{{ ansible_distribution }}' && version=='{{ ansible_distribution_version }}'].status"
-  when: int_reg_suseconnect_status.rc == 0
-
-- name: Set Registration type
+- name: Set registration type
   ansible.builtin.set_fact:
     reg_type: >-
       {% if int_fact_registration_status == 'Registered' %}R0

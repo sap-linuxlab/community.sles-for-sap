@@ -26,5 +26,5 @@ search for `registercloudguest`.  Default is `false`.
 This role supports check mode.  Check mode demonstrate the actions that will be
 taken if the role were to be run.  As no ansible modules for SLES registration
 exist, a lot of the role relies on using the `ansible.builtin.command` module,
-which fully support check mode.  However, the task `Show actions` will provide
-a good summary of the action the role would take if run normally.
+which fully support check mode.  However, the task `Print required action` will
+provide a good summary of the action the role would take if run normally.

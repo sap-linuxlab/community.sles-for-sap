@@ -1,0 +1,4 @@
+---
+- name: Ensure that solution is verified
+  ansible.builtin.command: "saptune solution verify {{ solution }}"
+  changed_when: false

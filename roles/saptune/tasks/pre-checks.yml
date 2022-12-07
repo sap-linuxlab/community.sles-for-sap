@@ -1,0 +1,76 @@
+---
+# Check variables
+- name: Assert that solution is declared
+  ansible.builtin.assert:
+    that: solution is defined
+    fail_msg: >-
+      The variable 'solution' must be defined in order to use this role. Ensure
+      that the variable is defined when calling the role.
+    success_msg: >-
+      The variable 'solution' is set.
+
+- name: Collect package facts
+  ansible.builtin.package_facts:
+
+# Ensure that saptune is installed
+- name: Assert that saptune is installed
+  ansible.builtin.assert:
+    that: "'saptune' in ansible_facts.packages"
+    fail_msg: >-
+      The package 'saptune' is not installed.  Install saptune 3.0 or prior to
+      running this role.
+    success_msg: >-
+      The package saptune is installed.
+
+- name: Assert that saptune is 3.0 or greater
+  ansible.builtin.assert:
+    that: "{{ ansible_facts.packages.saptune[0].version is version('3.0', '>=') }}"
+    fail_msg: >-
+      saptune 3.0 is the minimum version supported by this role.  The installed
+      version of saptune is lower than 3.0.  Ensure that a supported version is
+      installed prior to running this role.
+    success_msg: >-
+      The installed version of saptune meets the minimum requirement.
+
+- name: Ensure saptune_check executes correctly
+  ansible.builtin.command: saptune_check
+  changed_when: false
+  check_mode: false
+
+# TODO - add support for checking that the provided solution is actually a
+# supported option.  Right now the output of `saptune solution list` is not
+# clean enough to attempt to parse.  However, saptune 3.1 will support json
+# output which will make parsing very easy.
+
+# TODO when saptune 3.1 is released, the json output feature will make this
+# section easier to maintain
+- name: Collect active solution
+  ansible.builtin.command: saptune solution enabled
+  register: int_reg_saptune_status
+  changed_when: false
+  check_mode: false
+
+- name: Collect active solution
+  ansible.builtin.command: saptune solution enabled
+  register: int_reg_saptune_active_solution
+  changed_when: false
+  check_mode: false
+
+- name: Set fact for active solution
+  ansible.builtin.set_fact:
+    int_fact_saptune_solution_configured:
+      "{{ (int_reg_saptune_active_solution.stdout |
+      regex_search('(\\S+)', '\\1'))[0] |
+      default('NONE') }}" # Capture the first block on none whitespace
+
+- name: Set action fact
+  ansible.builtin.set_fact:
+    int_fact_action: >-
+      {% if int_fact_saptune_solution_configured == 'NONE' %}No solution configured, {{ solution }} will be applied
+      {% elif int_fact_saptune_solution_configured == solution %}{{ solution }} solution is already applied
+      {% elif int_fact_saptune_solution_configured != solution %}{{ int_fact_saptune_solution_configured }} applied. Will revert and apply {{ solution }}
+      {% endif %}
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: "{{ int_fact_action | trim }}"
