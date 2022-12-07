@@ -1,6 +1,6 @@
 # SLES for SAP Ansible Roles
 
-![markdown badge](https://github.com/mr-stringer/sles-for-sap-roles/actions/workflows/markdown-lint/markdown-lint/badge.svg)
+![markdown badge](https://github.com/mr-stringer/sles-for-sap-roles/actions/workflows/markdown-lint.yml/badge.svg)
 
 This repository provides a collection of Ansible roles for SLES for SAP. The
 roles are written to support the provision of SLES for SAP along with the
