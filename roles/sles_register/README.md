@@ -19,7 +19,7 @@ The following variable is mandatory:
 The following variable is optional.
 
 * use_suseconnect - if `true`, the role will use `SUSEConnect` and will not
-search for `registercloudguest`.  Default is `false`.
+  search for `registercloudguest`.  Default is `false`.
 
 ## Check mode
 
