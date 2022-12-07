@@ -30,7 +30,7 @@ happens, the task `Ensure that solution is verified`, will fail.  Ansible will
 print the `stdout` from the "saptune solution verify \<solution\>" command.
 However, this output is tabulated and will not be pleasantly displayed in by
 Ansible.  Therefore, a better approach is to run the same command on the
-host and record the output.  
+host and record the output.
 
 ## Check mode
 
