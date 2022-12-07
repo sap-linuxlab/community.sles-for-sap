@@ -1,0 +1,26 @@
+---
+- name: Ensure conflicting services are disabled
+  ansible.builtin.systemd:
+    name: "{{ service }}"
+    state: stopped
+    enabled: false
+  loop: "{{ int_conflicting_services }}"
+  loop_control:
+    loop_var: service
+
+- name: Ensure saptune is enabled and running
+  ansible.builtin.systemd:
+    name: saptune
+    state: started
+    enabled: true
+
+- name: Ensure that unwanted solution is reverted
+  ansible.builtin.command: "saptune solution revert {{ int_fact_saptune_solution_configured }}"
+  when:
+    - int_fact_saptune_solution_configured != solution
+    - int_fact_saptune_solution_configured != 'NONE'
+
+- name: Ensure that required solution is applied
+  ansible.builtin.command: "saptune solution apply {{ solution }}"
+  when:
+    - int_fact_saptune_solution_configured != solution
