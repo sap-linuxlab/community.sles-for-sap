@@ -13,6 +13,10 @@ fail with a meaningful error.
 **IMPORTANT**, this role only works with saptune 3.0 or newer.  If a version
 older than 3.0 is discovered, the role with fail with a meaningful error.
 
+**IMPORTANT**, this role deals with saptune `solutions` only.  It will apply and
+revert solutions as necessary.  Any sapnotes applied or removed by saptune by a
+user are out of the scope of this role.
+
 ## Variables
 
 The following variable is mandatory:
