@@ -1,0 +1,76 @@
+---
+- name: Assert that sap_storage is defined
+  ansible.builtin.assert:
+    that: sap_storage is defined
+    fail_msg: >-
+      The variable sap_storage is not defined. Ensure the variable is included
+      in or sourced by the playbook calling the role.
+    success_msg: >-
+      sap_storage variable is defined.
+
+- name: Assert the sap_storage has at least one element
+  ansible.builtin.assert:
+    that: sap_storage | length > 0
+    fail_msg: >-
+      The sap_storage variable is empty or incorrectly formatted. This variable
+      should contain dictionaries that describe the storage configuration. See
+      the role documentation for an example configuration.
+    success_msg: >-
+      The sap_storage appears to be populated.
+
+- name: Assert common dictionary keys exist and are populated
+  ansible.builtin.assert:
+    that:
+      - item.value.label is defined
+      - item.value.label | length > 0
+      - item.value.devices is defined
+      - item.value.devices | length > 0
+      - item.value.mount_point is defined
+      - item.value.mount_point | length > 0
+      - item.value.file_system is defined
+      - item.value.file_system | length > 0
+    fail_msg: >-
+      One or more required elements were not found in the configuration. label,
+      devices, mount_point and file_system are required for each entry.
+    success_msg: >-
+      All required elements were found to be defined and populated.
+  loop: "{{ sap_storage | dict2items }}"
+
+- name: Assert all devices exists
+  ansible.builtin.debug:
+    msg: ${{ item.value.devices }}
+  loop: "{{ sap_storage | dict2items }}"
+
+- name: Assert that multiple devices dictionaries define a stripe size
+  ansible.builtin.assert:
+    that:
+      - item.value.stripe_size is defined
+      - item.value.stripe_size | length > 0
+    fail_msg: >-
+      stripe_size must be defined when creating an LV from an LVG that contains
+      more than one device.
+    success_msg: >-
+      stripe_size found.
+  loop: "{{ sap_storage | dict2items }}"
+  when: item.value.devices | length > 1
+
+# TODO check that all devices exist!
+
+- name: Check for existence of target devices
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: int_reg_device_check
+  loop: "{{
+      sap_storage |
+      community.general.json_query('*[].devices[]')
+      }}"
+
+- name: Assert required devices are available
+  ansible.builtin.assert:
+    that: item.stat.exists
+    fail_msg: >-
+      The device {{ item.item }} was not found.  Ensure that all devices
+      that are declared in the configuration are available to the system
+    success_msg: >-
+      Device {{ item.item }} found
+  loop: "{{ int_reg_device_check.results }}"

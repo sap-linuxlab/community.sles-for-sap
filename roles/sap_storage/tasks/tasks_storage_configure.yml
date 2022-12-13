@@ -1,0 +1,54 @@
+---
+- name: Ensure VG exists - {{ item.key }}
+  ansible.builtin.lvg:
+    state: present
+    vg: "{{ item.value.label }}{{ vg_suffix }}"
+    pvs: "{{ item.value.devices }}"
+
+- name: Ensure LV is present (single-device LVG) - {{ item.key }}
+  ansible.builtin.lvol:
+    state: present
+    vg: "{{ item.value.label }}{{ vg_suffix }}"
+    lv: "{{ item.value.label }}{{ lv_suffix }}"
+    size: 100%VG
+  when: item.value.devices | length == 1
+
+- name: Ensure LV is present (multi-device LVG) - {{ item.key }}
+  ansible.builtin.lvol:
+    state: present
+    vg: "{{ item.value.label }}{{ vg_suffix }}"
+    lv: "{{ item.value.label }}{{ lv_suffix }}"
+    size: 100%VG
+    opts: "--stripes {{ item.value.devices | length }} --stripesize {{ item.value.stripe_size }}"
+  when: item.value.devices | length > 1
+
+- name: Ensure files system exists (no additional options) - {{ item.key }}
+  community.general.filesystem:
+    state: present
+    dev: "/dev/mapper/{{ item.value.label }}{{ vg_suffix }}-{{ item.value.label }}{{ lv_suffix }}"
+    fstype: "{{ item.value.file_system }}"
+  when: item.value.file_system_options is not defined
+
+- name: Ensure files system exists (with additional options) - {{ item.key }}
+  community.general.filesystem:
+    state: present
+    dev: "/dev/mapper/{{ item.value.label }}{{ vg_suffix }}-{{ item.value.label }}{{ lv_suffix }}"
+    fstype: "{{ item.value.file_system }}"
+  when: item.value.file_system_options is defined
+
+- name: Ensure file system is mounted (no additional mount options) - {{ item.key }}
+  ansible.posix.mount:
+    state: mounted
+    src: "/dev/mapper/{{ item.value.label }}{{ vg_suffix }}-{{ item.value.label }}{{ lv_suffix }}"
+    path: "{{ item.value.mount_point }}"
+    fstype: "{{ item.value.file_system }}"
+  when: item.value.mount_options is not defined
+
+- name: Ensure file system is mounted (with additional mount options) - {{ item.key }}
+  ansible.posix.mount:
+    state: mounted
+    src: "/dev/mapper/{{ item.value.label }}{{ vg_suffix }}-{{ item.value.label }}{{ lv_suffix }}"
+    path: "{{ item.value.mount_point }}"
+    fstype: "{{ item.value.file_system }}"
+    opts: "{{ item.value.mount_options }}"
+  when: item.value.mount_options is defined

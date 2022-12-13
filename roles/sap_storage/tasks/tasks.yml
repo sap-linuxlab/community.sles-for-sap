@@ -1,0 +1,4 @@
+---
+- name: Process each configuration
+  ansible.builtin.include_tasks: ./tasks_storage_configure.yml
+  loop: "{{ sap_storage | dict2items }}"

@@ -1,0 +1,91 @@
+---
+- name: Get configuration names
+  ansible.builtin.set_fact:
+    int_fact_conf_names: "{{
+      sap_storage |
+      community.general.json_query('*[].label') }}"
+  changed_when: false
+  failed_when: false
+
+- name: Check for VGs
+  ansible.builtin.stat:
+    path: "/dev/{{ item }}{{ vg_suffix }}"
+  loop: "{{ int_fact_conf_names }}"
+  register: int_reg_vg_check
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Assert all VGs were created
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    fail_msg: >-
+      The volume group {{ item.item }}{{ vg_suffix }} does not seem to have been
+      created.
+    success_msg: >-
+      The volume group {{ item.item }}{{ vg_suffix }} appears to have been
+      created
+  loop: "{{ int_reg_vg_check.results }}"
+  when: not ansible_check_mode
+
+- name: Check for LVs
+  ansible.builtin.stat:
+    path: "/dev/{{ item }}{{ vg_suffix }}/{{ item }}{{ lv_suffix }}"
+  loop: "{{ int_fact_conf_names }}"
+  register: int_reg_lv_check
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Assert all LVs were created
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    fail_msg: >-
+      The volume group {{ item.item }}{{ lv_suffix }} does not seem to have been
+      created.
+    success_msg: >-
+      The volume group {{ item.item }}{{ lv_suffix }} appears to have been
+      created
+  loop: "{{ int_reg_lv_check.results }}"
+  when: not ansible_check_mode
+
+
+- name: Regather facts
+  ansible.builtin.gather_facts:
+  tags:
+    post-checks
+  when: not ansible_check_mode
+
+- name: Assert file systems are mounted
+  ansible.builtin.assert:
+    that:
+      ansible_facts.mounts |
+      community.general.json_query(q1) != '[]'
+    fail_msg: >-
+      The mount expected at {{ item.value.mount_point }} was not found.
+    success_msg: >-
+      The mount expected at {{ item.value.mount_point }} was found and appears
+      to be correct.
+  loop: "{{ sap_storage | dict2items }}"
+  vars:
+    q1: "[?mount=='{{ item.value.mount_point }}']"
+  when: not ansible_check_mode
+
+- name: Assert that mounted file systems are correct file system type
+  ansible.builtin.assert:
+    that:
+      ansible_facts.mounts |
+      community.general.json_query(q1) != '[]'
+    fail_msg: >-
+      The mount expected at {{ item.value.mount_point }} was expected to be
+      {{ item.value.file_system }} but a different file system type was
+      found.
+    success_msg: >-
+      The mount expected at {{ item.value.mount_point }} appears to be the
+      correct file_system ({{ item.value.file_system }})
+  loop: "{{ sap_storage | dict2items }}"
+  vars:
+    q1: "[?mount=='{{ item.value.mount_point }}' && fstype=='{{ item.value.file_system }}']"
+  when: not ansible_check_mode
