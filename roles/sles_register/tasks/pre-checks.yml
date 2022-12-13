@@ -40,6 +40,28 @@
       any type of registration.  Ensure that SUSEConnect is installed
     success_msg: SUSEConnect found
 
+- name: Get current SUSEConnect status
+  ansible.builtin.command: SUSEConnect -s
+  register: int_reg_registration_suseconnect_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Get registration status
+  ansible.builtin.set_fact:
+    int_fact_registration_status: "{{
+      int_reg_registration_suseconnect_status.stdout |
+      from_json |
+      community.general.json_query(q1) |
+      first
+      }}"
+  vars:
+    q1: "[?identifier=='{{ ansible_distribution }}' && version=='{{ ansible_distribution_version }}'].status"
+  when:
+    - not ansible_check_mode
+    - int_reg_registration_suseconnect_status.rc == 0
+
 - name: Set registration type
   ansible.builtin.set_fact:
     reg_type: >-

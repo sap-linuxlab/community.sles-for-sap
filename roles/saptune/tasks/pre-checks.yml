@@ -32,11 +32,6 @@
     success_msg: >-
       The installed version of saptune meets the minimum requirement.
 
-- name: Ensure saptune_check executes correctly
-  ansible.builtin.command: saptune_check
-  changed_when: false
-  check_mode: false
-
 # TODO - add support for checking that the provided solution is actually a
 # supported option.  Right now the output of `saptune solution list` is not
 # clean enough to attempt to parse.  However, saptune 3.1 will support json
