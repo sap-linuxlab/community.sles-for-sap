@@ -24,7 +24,7 @@ The following variables are used with the role
 * hana_sid - the three character 'System ID' of the HANA installation
 * hana_instance_number - the two digit instance ID of the HANA installation
 * hana_master_password - a password that will be set for all password options.
-  It is recommended to change passwords after the installation.  
+  It is recommended to change passwords after the installation.
 
 **NOTE** The HANA master password needs to be at least 8 characters in length,
 and include at least 1 uppercase, 1 lowercase and 1 numerical character.
@@ -59,10 +59,10 @@ used.
   information, see SAP Note 3014176. Valid values 'y' or 'no'. Default: 'n'.
 * hana_home: The location of the hana user's home directory.  The given value
   must be a string to the location that will be used.  The directory does not
-  need to pre-exist. By default, the path will be '/usr/sap/<hana_sid>/home'.
+  need to pre-exist. By default, the path will be '/usr/sap/\<hana_sid\>/home'.
 * hana_user_id: The user ID of the HANA user. The value need to be a positive
   integer.  The UID must be free.  By default, the users ID will be
-  '30<hana_instance_number>'.
+  '30\<hana_instance_number\>'.
 * hana_group_id: The group ID of sapsys.  The value need to be a positive
   integer.  The UID must be free.  Default: '79'
 
