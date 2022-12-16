@@ -1,0 +1,8 @@
+---
+# Defaults for the HANA install roles
+hana_install_dir: "/hana/shared"
+hana_usage: "test"
+hana_restrict_max_mem: "n"
+hana_max_memory: "0"
+hana_system_size_dependent_parameters: "n"
+hana_group_id: "79"

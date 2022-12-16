@@ -1,0 +1,43 @@
+---
+- name: Ensure required variables are defined
+  ansible.builtin.assert:
+    that:
+      "{{ item }} is defined"
+    fail_msg: >-
+      The variable {{ item }} is not defined.  You must define and populate this
+      variable for this role to function.
+    success_msg: >-
+      The {{ item }} variable is correctly defined.
+  loop:
+    - hana_sid
+    - hana_instance_number
+    - hana_master_password
+
+- name: Check hana_sid is compliant
+  ansible.builtin.assert:
+    that:
+      "hana_sid is ansible.builtin.regex('[A-Z]{1}[A-Z0-9]{2}')"
+    fail_msg: >-
+      hana_sid must consist of three characters. Characters must be
+      uppercase alphabetical characters or numbers only.  The first alphabetical
+      character.
+    success_msg: >-
+      hana_sid matches the required pattern.
+
+- name: Ensure that hana_sid is not a reserved SID name
+  ansible.builtin.assert:
+    that:
+      hana_sid not in int_var_reserved_sids
+    fail_msg: >-
+      hana_sid is set to {{ hana_sid }}, this is a reserved SID and cannot be
+      used.  Change the variable hana_sid to an allowed value.
+    success_msg: >-
+      hana_sid is not a reserved value
+
+- name: Ensure HANA master password matches minimum requirements
+  ansible.builtin.assert:
+    that:
+      - hana_master_password | length >= 8
+      - hana_master_password is ansible.builtin.regex('[a-z]+')
+      - hana_master_password is ansible.builtin.regex('[A-Z]+')
+      - hana_master_password is ansible.builtin.regex('[0-9]+')
