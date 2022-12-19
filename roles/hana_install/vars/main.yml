@@ -53,3 +53,8 @@ int_var_reserved_sids:
   - "USE"
   - "USR"
   - "VAR"
+
+# HANA install variables, stored here in case they changed and need to be
+# altered
+int_var_hana_unpack_name: "SAP_HANA_DATABASE"
+int_var_manifest_filename: "SIGNATURE.SMF"

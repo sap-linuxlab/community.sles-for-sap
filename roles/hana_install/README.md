@@ -6,7 +6,8 @@ upgrades or changes to existing HANA installations.
 
 The role performs the following tasks:
 
-* Installs HANA and additional components as required
+* Unpacks the HANA installation SAR file
+* Installs HANA
 
 ## Idempotency
 
@@ -21,8 +22,13 @@ The following variables are used with the role
 
 ### Required variables
 
-* hana_sid - the three character 'System ID' of the HANA installation
-* hana_instance_number - the two digit instance ID of the HANA installation
+* sapcar_binary - the full path to the sapcar binary required to unpack the
+  hana installation SAR file.
+* hana_sar - the full path of the HANA sar file.
+* hana_unpack_directory - the location where the content of the HANA
+  sar file should be unpacked to.
+* hana_sid - the three character 'System ID' of the HANA installation.
+* hana_instance_number - the two digit instance ID of the HANA installation.
 * hana_master_password - a password that will be set for all password options.
   It is recommended to change passwords after the installation.
 
@@ -65,35 +71,3 @@ used.
   '30\<hana_instance_number\>'.
 * hana_group_id: The group ID of sapsys.  The value need to be a positive
   integer.  The UID must be free.  Default: '79'
-
-**Note** When a LVG consists of a single device no striping will be
-attempted, however, when an LVG consists of multiple devices, the LV will be
-striped across all devices.
-
-**Note** `stripe_size` is ignored when the LVG consists of a single device
-and can be omitted.
-
-**Note** `extra_file_system_arguments` is optional and can be omitted.
-
-## Example configuration
-
-```yaml
-sap_storage_config:
-  usr_sap:
-    label: "usr_sap"
-    devices: ["/dev/disk/azure/scsi1/lun0"]
-    mount_point: "/usr/sap"
-    file_system: "xfs"
-# LVM striped partition
-  hana:
-    label: "hana"
-    devices: ["/dev/disk/azure/scsi1/lun1","/dev/disk/azure/scsi1/lun2","/dev/disk/azure/scsi1/lun3"]
-    mount_point: "hana"
-    file_system: "xfs"
-    stripe_size: "32"
-    mount_options: "noatime,nodiratime,logbsize=256k"
-```
-
-## Check mode
-
-Check mode is not currently supported for this role.

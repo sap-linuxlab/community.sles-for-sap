@@ -42,3 +42,8 @@ pre-checks.
 
 It is the opinion of the authors that package managed should be handled
 externally from the roles.
+
+## Conventions
+
+To see more information about the naming and coding conventions used in the
+project, see the [Conventions page](Conventions.md).
