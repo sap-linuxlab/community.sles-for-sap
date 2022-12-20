@@ -1,0 +1,6 @@
+---
+# TODO
+# Get list of databases - use hdbsql to send it to a file
+# Read file
+# Loop file to back up each DBA
+# Remove file

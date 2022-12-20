@@ -20,15 +20,33 @@
     state: absent
   when: not int_fact_hana_unpacked
 
+- name: Create temporary HANA install configuration file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: tmp_hana_install_file
+  register: int_reg_tmp_hana_install_config
+  when: not int_fact_hana_installed
+
 - name: Populate installation template
   ansible.builtin.template:
     owner: "root"
     group: "root"
     mode: "0600"
     src: templates/hana_install.j2
-    dest: "/tmp/hana_install"
+    dest: "{{ int_reg_tmp_hana_install_config.path }}"
+  when: not int_fact_hana_installed
 
 - name: Ensure HANA is installed
   ansible.builtin.command:
-    "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}/hdblcm --batch --configfile=/tmp/hana_install"
+    "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}/hdblcm --batch --configfile={{ int_reg_tmp_hana_install_config.path }}"
   when: not int_fact_hana_installed
+
+- name: Remove installation template
+  ansible.builtin.file:
+    path: "{{ int_reg_tmp_hana_install_config.path }}"
+    state: absent
+  when: not int_fact_hana_installed
+
+- name: Include backup tasks
+  ansible.builtin.include_tasks: backup.yml
+  when: initial_backup

@@ -58,3 +58,4 @@ int_var_reserved_sids:
 # altered
 int_var_hana_unpack_name: "SAP_HANA_DATABASE"
 int_var_manifest_filename: "SIGNATURE.SMF"
+int_var_hana_template_cfg: "~/hana_install.cfg"

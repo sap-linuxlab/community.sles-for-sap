@@ -57,17 +57,19 @@ used.
   Required when more than more one HANA instance is installed on a hosts and
   sometimes useful on low-memory hosts. Valid values are 'y' and 'n'. Default:
   'n'.
-* hana_max_memory: Used in when `hana_restrict_max_mem` is set to 'y', specifies
+* hana_max_memory - Used in when `hana_restrict_max_mem` is set to 'y', specifies
   in MiB, the maximum memory footprint of all HANA services. Default: '0' (no
   limit).
-* hana_system_size_dependent_parameters: Controls if size dependant database
+* hana_system_size_dependent_parameters - Controls if size dependant database
   parameters defaults should be written to the configuration. For more
   information, see SAP Note 3014176. Valid values 'y' or 'no'. Default: 'n'.
-* hana_home: The location of the hana user's home directory.  The given value
+* hana_home - The location of the hana user's home directory.  The given value
   must be a string to the location that will be used.  The directory does not
   need to pre-exist. By default, the path will be '/usr/sap/\<hana_sid\>/home'.
-* hana_user_id: The user ID of the HANA user. The value need to be a positive
+* hana_user_id - The user ID of the HANA user. The value need to be a positive
   integer.  The UID must be free.  By default, the users ID will be
   '30\<hana_instance_number\>'.
-* hana_group_id: The group ID of sapsys.  The value need to be a positive
+* hana_group_id - The group ID of sapsys.  The value need to be a positive
   integer.  The UID must be free.  Default: '79'
+* initial_backup - decided if an initial backup should be created for the
+  systemdb and the default tenant. Default: 'true'
