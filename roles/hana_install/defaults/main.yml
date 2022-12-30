@@ -12,4 +12,8 @@ hana_system_size_dependent_parameters: "n"
 hana_home: "/usr/sap/{{ hana_sid }}/home"
 hana_user_id: "30{{ hana_instance_number }}"
 hana_group_id: "79"
+
+# HANA backup related variables
 initial_backup: true
+hdbsql_get_tenants_query: 'SELECT DATABASE_NAME FROM "SYS"."M_DATABASES"'
+hdbsql_args: "-i {{ hana_instance_number }} -u system -d systemdb -p '{{ hana_master_password }}' -quiet"

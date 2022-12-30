@@ -4,3 +4,67 @@
 # Read file
 # Loop file to back up each DBA
 # Remove file
+
+- name: Set hdbsql path
+  ansible.builtin.set_fact:
+    hdbsql_path: "/usr/sap/{{ hana_sid }}/HDB{{ hana_instance_number }}/exe/hdbsql"
+
+- name: Check hdbsql binary data
+  ansible.builtin.stat:
+    path: "{{ hdbsql_path }}"
+    get_checksum: false
+  register: int_reg_hdbsql_check
+  changed_when: false
+  failed_when: false
+
+- name: Ensure hdbsql binary exists
+  ansible.builtin.assert:
+    that:
+      - not int_reg_hdbsql_check.failed
+      - int_reg_hdbsql_check.stat.exists
+      - int_reg_hdbsql_check.stat.isreg
+    fail_msg: >-
+      The expected file {{ hdbsql_path }} was not either not found or was not a
+      a regular file. This was not expected. Please report this error.
+    success_msg: >-
+      The file {{ hdbsql_path }} was found.
+
+- name: Ensure hdbsql binary is executable
+  ansible.builtin.assert:
+    that:
+      - int_reg_hdbsql_check.stat.executable
+    fail_msg: >-
+      The file {{ hdbsql_path }} was found but it is not executable. It is
+      necessary to add execute permission for the root user.
+    success_msg: >-
+      The file {{ hdbsql_path }} is executable.
+
+# TODO - should be a random file name to avoid injection attack
+- name: Ensure all tenants query is copied to remote hosts
+  ansible.builtin.copy:
+    src: all_tenants_query.sql
+    dest: /tmp/all_tenants_query.sql
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Retrieve a list of database tenants for backup
+  ansible.builtin.command: >-
+    {{ hdbsql_path }} {{ hdbsql_args }} -I /tmp/all_tenants_query.sql -o /tmp/tenants
+  changed_when: false
+
+- name: Read tenant file
+  ansible.builtin.command: cat /tmp/tenants
+  register: int_reg_tenant_list
+  changed_when: false
+
+- name: Split
+  ansible.builtin.set_fact:
+    int_fact_tenant_list: "{{ int_reg_tenant_list.stdout | split('\n')}}"
+
+# TODO: Create a template for this and then run the sql using the input file.
+- name: Perform initial default backup of each database tenant
+  ansible.builtin.command: >-
+    BACKUP DATA FOR {{ item | replace('\"', '') }} USING FILE('initial_data_backup')
+  loop: "{{ int_fact_tenant_list }}"
+  when: item != 'DATABASE_NAME'
