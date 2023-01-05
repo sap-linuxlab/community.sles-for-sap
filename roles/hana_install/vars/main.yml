@@ -54,8 +54,18 @@ int_var_reserved_sids:
   - "USR"
   - "VAR"
 
-# HANA install variables, stored here in case they changed and need to be
-# altered
+# HANA install variables
 int_var_hana_unpack_name: "SAP_HANA_DATABASE"
 int_var_manifest_filename: "SIGNATURE.SMF"
 int_var_hana_template_cfg: "~/hana_install.cfg"
+int_var_hana_required_packages:
+  - libgcc_s1
+  - libstdc++6
+  - libatomic1
+
+# Expected HANA install directories
+int_var_hana_install_check_directories:
+  - "/usr/sap/{{ hana_sid }}"
+  - "{{ hana_install_dir }}/{{ hana_sid }}"
+  - "{{ hana_data_path }}"
+  - "{{ hana_log_path }}"

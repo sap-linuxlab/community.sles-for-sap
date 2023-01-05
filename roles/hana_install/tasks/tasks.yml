@@ -46,7 +46,3 @@
     path: "{{ int_reg_tmp_hana_install_config.path }}"
     state: absent
   when: not int_fact_hana_installed
-
-- name: Include backup tasks
-  ansible.builtin.include_tasks: backup.yml
-  when: initial_backup

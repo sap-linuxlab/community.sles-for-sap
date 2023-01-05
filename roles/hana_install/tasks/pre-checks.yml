@@ -16,6 +16,27 @@
     - hana_sar
     - hana_unpack_directory
 
+- name: Collect package facts
+  ansible.builtin.package_facts:
+
+# Ensure that required packages are installed
+- name: Assert that required SAP HANA dependencies are installed
+  ansible.builtin.assert:
+    that: >-
+      '{{ item }}' in ansible_facts.packages
+    fail_msg: >-
+      The package '{{ item }}' is not installed.  This package is required from
+      HANA 2.0 SPS5 onwards. However, you will need to verify that the version
+      you install meets the minimum requirement for your version of HANA. See
+      "SAPNOTE 2235581 - SAP HANA: Supported Operating Systems" for full
+      details.
+    success_msg: >-
+      The package '{{ item }}' is installed.  However, you will need to verify
+      that the version you install meets the minimum requirement for your
+      version of HANA. See "SAPNOTE 2235581 - SAP HANA: Supported Operating
+      Systems" for full details.
+  loop: "{{ int_var_hana_required_packages }}"
+
 - name: Check sapcar binary data
   ansible.builtin.stat:
     path: "{{ sapcar_binary }}"

@@ -1,0 +1,31 @@
+---
+- name: Check HANA directories
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: int_reg_hana_post_install_directories
+  loop: "{{ int_var_hana_install_check_directories }}"
+  changed_when: false
+
+- name: Assert that expected HANA directories exists
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isdir
+      - item.stat.pw_name == '{{ hana_sid | lower }}adm'
+      - item.stat.gr_name == 'sapsys'
+    fail_msg: >-
+      {{ item.stat.path }} either does not exist, is not a directory, is not
+      owned by {{ hana_sid | lower }}adm or its group is 'sapsys'. This
+      indicates that the HANA installation was not completed successfully.
+    success_msg: >-
+      The directory {{ item.stat.path }} was found as expected.
+  loop: "{{ int_reg_hana_post_install_directories.results }}"
+
+- name: Check basic HANA processes are running
+  ansible.builtin.command: "ps h -u {{ hana_sid | lower }}adm -o cmd"
+  register: int_reg_hana_post_install_ps
+  changed_when: false
+
+- name: Assert that HANA basic processes are running
+  ansible.builtin.assert:
+    that: something
