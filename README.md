@@ -47,4 +47,3 @@ externally from the roles.
 
 To see more information about the naming and coding conventions used in the
 project, see the [Conventions page](Conventions.md).
-
