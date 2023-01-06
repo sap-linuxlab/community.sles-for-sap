@@ -5,6 +5,7 @@
   register: int_reg_hana_post_install_directories
   loop: "{{ int_var_hana_install_check_directories }}"
   changed_when: false
+  when: int_fact_hana_installed
 
 - name: Assert that expected HANA directories exists
   ansible.builtin.assert:
@@ -20,12 +21,55 @@
     success_msg: >-
       The directory {{ item.stat.path }} was found as expected.
   loop: "{{ int_reg_hana_post_install_directories.results }}"
+  when: int_fact_hana_installed
 
 - name: Check basic HANA processes are running
-  ansible.builtin.command: "ps h -u {{ hana_sid | lower }}adm -o cmd"
+  ansible.builtin.command: "ps h -u {{ hana_sid | lower }}adm -o args"
   register: int_reg_hana_post_install_ps
   changed_when: false
+  when: int_fact_hana_installed
+  check_mode: false
+
+- name: Create process list fact
+  ansible.builtin.set_fact:
+    int_fact_running_processes: "{{
+      int_fact_running_processes |
+      default([]) + [item | regex_findall('[A-Za-z0-9]+$|[A-Za-z0-9]+ ', '\\1') |
+      first |
+      trim]
+      }}"
+  loop: "{{ int_reg_hana_post_install_ps.stdout_lines }}"
+  when: int_fact_hana_installed
 
 - name: Assert that HANA basic processes are running
   ansible.builtin.assert:
-    that: something
+    that: "'{{ item }}' in int_fact_running_processes"
+    fail_msg: >-
+      The process {{ item }} was not discovered, this indicates that HANA may
+      not of been successfully installed.
+    success_msg: >-
+      The process {{ item }} was found to be running
+  loop: "{{ int_var_min_hana_processes }}"
+  when: int_fact_hana_installed
+
+- name: Check for HANA open ports
+  ansible.builtin.wait_for:
+    port: "{{ item }}"
+    state: started
+    timeout: 5
+  register: int_reg_hana_ports
+  loop: "{{ int_var_min_hana_ports }}"
+  changed_when: false
+  ignore_errors: true
+  when: int_fact_hana_installed
+
+- name: Assert expected HANA ports are open
+  ansible.builtin.assert:
+    that: not item.failed
+    fail_msg: >-
+      The port {{ item.invocation.module_args.port }} is not open. This indicates
+      that HANA may not of been successfully installed.
+    success_msg: >-
+      The port {{ item.invocation.module_args.port }} is open as expected.
+  loop: "{{ int_reg_hana_ports.results }}"
+  when: int_fact_hana_installed

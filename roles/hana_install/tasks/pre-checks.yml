@@ -18,6 +18,7 @@
 
 - name: Collect package facts
   ansible.builtin.package_facts:
+  changed_when: false
 
 # Ensure that required packages are installed
 - name: Assert that required SAP HANA dependencies are installed
@@ -124,13 +125,6 @@
 - name: Set HANA unpacked fact
   ansible.builtin.set_fact:
     int_fact_hana_unpacked: "{{ int_reg_hana_unpack_status.stat.exists | default(false) }}"
-
-- name: PrintStuff
-  ansible.builtin.debug:
-    msg: "{{ item }}"
-  loop:
-    - "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}"
-    - "{{ int_reg_hana_unpack_status }}"
 
 - name: Check hana_sid is compliant
   ansible.builtin.assert:

@@ -9,10 +9,35 @@ The role performs the following tasks:
 * Unpacks the HANA installation SAR file
 * Installs HANA
 
+## Supported versions
+
+### HANA
+
+Currently, this role supports HANA 2.0 SPS 5 and later.
+
+There are no plans to support earlier version.
+
+HANA 2.0 SPS5 and SPS6 require different minimum versions of the following
+packages:
+
+* libgcc_s1
+* libstdc++6
+* libatomic1
+
+Ensure these packages are at the correct levels before using the role. For more
+information see [SAPNOTE 2235581 - SAP HANA: Supported Operating Systems](https://launchpad.support.sap.com/#/notes/2235581)
+
+### SLES
+
+This roles supports:
+
+* SLES 12 SPS5
+* SLES 15 (all service packs)
+
 ## Idempotency
 
-If the role discovers a HANA installation that matches the required SID and
-instance number, the role will assume that the required HANA installation is
+If the role discovers a HANA installation that matches the required SID, the
+role will assume that the required HANA installation is
 complete and make no changes to the system.  No other variables will be taken
 in to consideration.
 
@@ -34,6 +59,10 @@ The following variables are used with the role
 
 **NOTE** The HANA master password needs to be at least 8 characters in length,
 and include at least 1 uppercase, 1 lowercase and 1 numerical character.
+
+The role pre-checks will ensure that all required variables are populated and
+correct. If any of the pre-checks fail, Ansible will print a meaningful error
+with instructions on how to correct the issues.
 
 ### Optional variables
 
@@ -71,5 +100,11 @@ used.
   '30\<hana_instance_number\>'.
 * hana_group_id - The group ID of sapsys.  The value need to be a positive
   integer.  The UID must be free.  Default: '79'
-* initial_backup - decided if an initial backup should be created for the
-  systemdb and the default tenant. Default: 'true'
+
+## Check mode
+
+The role works correctly in check mode.
+
+In check mode no changes will be made to the system. All of the pre-checks will
+be run. If the role detects that HANA is installed, the post-checks will also be
+completed.
