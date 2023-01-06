@@ -1,0 +1,178 @@
+---
+- name: Ensure required variables are defined
+  ansible.builtin.assert:
+    that:
+      "{{ item }} is defined"
+    fail_msg: >-
+      The variable {{ item }} is not defined.  You must define and populate this
+      variable for this role to function.
+    success_msg: >-
+      The {{ item }} variable is correctly defined.
+  loop:
+    - hana_sid
+    - hana_instance_number
+    - hana_master_password
+    - sapcar_binary
+    - hana_sar
+    - hana_unpack_directory
+
+- name: Collect package facts
+  ansible.builtin.package_facts:
+  changed_when: false
+
+# Ensure that required packages are installed
+- name: Assert that required SAP HANA dependencies are installed
+  ansible.builtin.assert:
+    that: >-
+      '{{ item }}' in ansible_facts.packages
+    fail_msg: >-
+      The package '{{ item }}' is not installed.  This package is required from
+      HANA 2.0 SPS5 onwards. However, you will need to verify that the version
+      you install meets the minimum requirement for your version of HANA. See
+      "SAPNOTE 2235581 - SAP HANA: Supported Operating Systems" for full
+      details.
+    success_msg: >-
+      The package '{{ item }}' is installed.  However, you will need to verify
+      that the version you install meets the minimum requirement for your
+      version of HANA. See "SAPNOTE 2235581 - SAP HANA: Supported Operating
+      Systems" for full details.
+  loop: "{{ int_var_hana_required_packages }}"
+
+- name: Check sapcar binary data
+  ansible.builtin.stat:
+    path: "{{ sapcar_binary }}"
+    get_checksum: false
+  register: int_reg_sapcar_check
+  changed_when: false
+  failed_when: false
+
+- name: Ensure sapcar binary exists
+  ansible.builtin.assert:
+    that:
+      - not int_reg_sapcar_check.failed
+      - int_reg_sapcar_check.stat.exists
+      - int_reg_sapcar_check.stat.isreg
+    fail_msg: >-
+      The value for sapcar_binary ({{ sapcar_binary }}) was either not found or
+      was not a regular file.  Ensure the the variable sapcar_binary is
+      correctly and that the file exists on the target.
+    success_msg: >-
+      {{ sapcar_binary }} exists and is a regular file.
+
+- name: Ensure sapcar binary is executable
+  ansible.builtin.assert:
+    that:
+      - int_reg_sapcar_check.stat.executable
+    fail_msg: >-
+      The value of sapcar_binary ({{ sapcar_binary }}), was found but it is not
+      executable.  Ensure that the file is executable user that this role is
+      running as on the target host (is this instance
+      '{{ ansible_facts.env.USER }}')
+    success_msg: >-
+      {{ sapcar_binary }} is executable by {{ ansible_facts.env.USER }}.
+
+- name: Check HANA SAR file
+  ansible.builtin.stat:
+    path: "{{ hana_sar }}"
+    get_checksum: false
+  register: int_reg_hana_sar_check
+  changed_when: false
+  failed_when: false
+
+- name: Ensure HANA sar file exists
+  ansible.builtin.assert:
+    that:
+      - not int_reg_hana_sar_check.failed
+      - int_reg_hana_sar_check.stat.exists
+      - int_reg_hana_sar_check.stat.isreg
+    fail_msg: >-
+      The value for hana_sar ({{ hana_sar }}) was either not found or
+      was not a regular file.  Ensure the the variable sapcar_binary is
+      correctly and that the file exists on the target.
+    success_msg: >-
+      {{ hana_sar }} exists and is a regular file.
+
+- name: Check unpack directory
+  ansible.builtin.stat:
+    path: "{{ hana_unpack_directory }}"
+    get_checksum: false
+  register: int_reg_hana_unpack_directory_check
+  changed_when: false
+  failed_when: false
+
+- name: Ensure that the unpack directory exists
+  ansible.builtin.assert:
+    that:
+      - not int_reg_hana_unpack_directory_check.failed
+      - int_reg_hana_unpack_directory_check.stat.exists
+      - int_reg_hana_unpack_directory_check.stat.isdir
+    fail_msg: >-
+      The value for hana_unpack_directory ({{ hana_unpack_directory }}) was
+      either not found or was not a directory.  Ensure the the variable
+      hana_unpack_directory is correct and that the directory exists on the
+      target.
+    success_msg: >-
+      {{ hana_unpack_directory }} exists and is a directory.
+
+- name: Check HANA unpack status
+  ansible.builtin.stat:
+    path: "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}"
+    get_checksum: false
+  register: int_reg_hana_unpack_status
+  changed_when: false
+  failed_when: false
+
+- name: Set HANA unpacked fact
+  ansible.builtin.set_fact:
+    int_fact_hana_unpacked: "{{ int_reg_hana_unpack_status.stat.exists | default(false) }}"
+
+- name: Check hana_sid is compliant
+  ansible.builtin.assert:
+    that:
+      "hana_sid is ansible.builtin.regex('[A-Z]{1}[A-Z0-9]{2}')"
+    fail_msg: >-
+      hana_sid must consist of three characters. Characters must be
+      uppercase alphabetical characters or numbers only.  The first alphabetical
+      character.
+    success_msg: >-
+      hana_sid matches the required pattern.
+
+- name: Ensure that hana_sid is not a reserved SID name
+  ansible.builtin.assert:
+    that:
+      hana_sid not in int_var_reserved_sids
+    fail_msg: >-
+      hana_sid is set to {{ hana_sid }}, this is a reserved SID and cannot be
+      used.  Change the variable hana_sid to an allowed value.
+    success_msg: >-
+      hana_sid is not a reserved value
+
+- name: Ensure HANA master password matches minimum requirements
+  ansible.builtin.assert:
+    that:
+      - hana_master_password | length >= 8
+      - hana_master_password is ansible.builtin.regex('[a-z]+')
+      - hana_master_password is ansible.builtin.regex('[A-Z]+')
+      - hana_master_password is ansible.builtin.regex('[0-9]+')
+
+- name: Determine installation status
+  ansible.builtin.stat:
+    path: "/usr/sap/{{ hana_sid }}"
+  register: int_fact_hana_installed
+  changed_when: false
+  failed_when: false
+
+- name: Set installation fact
+  ansible.builtin.set_fact:
+    int_fact_hana_installed: "{{ int_fact_hana_installed.stat.exists | default(false) }}"
+
+- name: Set action fact
+  ansible.builtin.set_fact:
+    int_fact_action: >-
+      {% if int_fact_hana_installed %}The SID {{ hana_sid }} appears to be installed.  Installation will not be applied.
+      {% else %}The SID {{ hana_sid }} was not found, installation required.
+      {% endif %}
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: "{{ int_fact_action | trim }}"

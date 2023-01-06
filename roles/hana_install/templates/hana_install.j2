@@ -1,0 +1,47 @@
+[Action]
+action=install
+
+[General]
+simplified_ui=n
+skip_hostagent_calls=n
+remote_execution=ssh
+use_master_password=y
+verify_signature=n
+components=server
+install_execution_mode=standard
+skip_modify_sudoers=n
+
+[Server]
+master_password={{ hana_master_password }}
+use_pmem=n
+install_hostagent=y
+db_mode=multidb
+db_isolation=low
+create_initial_tenant=y
+sapmnt={{ hana_install_dir }}
+hostname={{ hana_hostname }}
+sid={{ hana_sid }}
+number={{ hana_instance_number }}
+configure_python=python3
+workergroup=default
+system_usage={{ hana_usage }}
+volume_encryption={{ hana_volume_encryption }}
+datapath={{ hana_data_path }}
+logpath={{ hana_log_path }}
+restrict_max_mem={{ hana_restrict_max_mem }}
+max_mem={{ hana_max_memory }}
+# Apply System Size Dependent Resource Limits? (SAP Note 3014176)
+apply_system_size_dependent_parameters={{ hana_system_size_dependent_parameters }}
+certificates_hostmap=
+home={{ hana_home }}
+shell=/bin/sh
+userid={{ hana_user_id }}
+groupid={{ hana_group_id }}
+nostart=n
+autostart=n
+repository=y
+isc_mode=standard
+
+[AddHosts]
+auto_initialize_services=y
+tenantdb_user=SYSTEM

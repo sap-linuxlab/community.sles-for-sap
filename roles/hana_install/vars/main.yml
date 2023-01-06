@@ -1,0 +1,87 @@
+int_var_reserved_sids:
+  - "ADD"
+  - "ALL"
+  - "AMD"
+  - "AND"
+  - "ANY"
+  - "ARE"
+  - "ASC"
+  - "AUX"
+  - "AVG"
+  - "BIT"
+  - "CDC"
+  - "COM"
+  - "CON"
+  - "DBA"
+  - "END"
+  - "EPS"
+  - "FOR"
+  - "GET"
+  - "GID"
+  - "IBM"
+  - "INT"
+  - "KEY"
+  - "LOG"
+  - "LPT"
+  - "MAP"
+  - "MAX"
+  - "MIN"
+  - "MON"
+  - "NIX"
+  - "NOT"
+  - "NUL"
+  - "OFF"
+  - "OLD"
+  - "OMS"
+  - "OUT"
+  - "PAD"
+  - "PRN"
+  - "RAW"
+  - "REF"
+  - "ROW"
+  - "SAP"
+  - "SET"
+  - "SGA"
+  - "SHG"
+  - "SID"
+  - "SQL"
+  - "SUM"
+  - "SYS"
+  - "TMP"
+  - "TOP"
+  - "UID"
+  - "USE"
+  - "USR"
+  - "VAR"
+
+# HANA install variables
+int_var_hana_unpack_name: "SAP_HANA_DATABASE"
+int_var_manifest_filename: "SIGNATURE.SMF"
+int_var_hana_template_cfg: "~/hana_install.cfg"
+int_var_hana_required_packages:
+  - libgcc_s1
+  - libstdc++6
+  - libatomic1
+
+# Expected HANA install directories
+int_var_hana_install_check_directories:
+  - "/usr/sap/{{ hana_sid }}"
+  - "{{ hana_install_dir }}/{{ hana_sid }}"
+  - "{{ hana_data_path }}"
+  - "{{ hana_log_path }}"
+
+# Minimal expected process of running HANA configuration
+# Note that hdbindexserver is absent, this is because it is possible to skip
+# the installation of a default tenant
+int_var_min_hana_processes:
+  - hdbnameserver
+  - sapstart
+  - sapstartsrv
+
+# A minimal list of ports that should be open following an installation
+int_var_min_hana_ports:
+  - 3{{ hana_instance_number }}00
+  - 3{{ hana_instance_number }}13
+  - 5{{ hana_instance_number }}13
+  - 43{{ hana_instance_number }}
+  - 80{{ hana_instance_number }}

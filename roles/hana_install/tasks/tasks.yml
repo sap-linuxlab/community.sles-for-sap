@@ -1,0 +1,55 @@
+---
+- name: Ensure that HANA sar file is unpacked
+  ansible.builtin.command:
+    "{{ sapcar_binary }} -xf {{ hana_sar }} -R {{ hana_unpack_directory }} -manifest SIGNATURE.SMF"
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)
+
+- name: Ensure copy of manifest file exists
+  ansible.builtin.copy:
+    src: "{{ hana_unpack_directory }}//{{ int_var_manifest_filename }}"
+    remote_src: true
+    dest: "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}/{{ int_var_manifest_filename }}"
+    owner: "root"
+    group: "root"
+    mode: "0600"
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)
+
+- name: Ensure original manifest file is removed
+  ansible.builtin.file:
+    path: "{{ hana_unpack_directory }}//{{ int_var_manifest_filename }}"
+    state: absent
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)
+
+- name: Create temporary HANA install configuration file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: tmp_hana_install_file
+  register: int_reg_tmp_hana_install_config
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)
+
+- name: Populate installation template
+  ansible.builtin.template:
+    owner: "root"
+    group: "root"
+    mode: "0600"
+    src: templates/hana_install.j2
+    dest: "{{ int_reg_tmp_hana_install_config.path }}"
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)
+
+- name: Ensure HANA is installed
+  ansible.builtin.command:
+    "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}/hdblcm --batch --configfile={{ int_reg_tmp_hana_install_config.path }}"
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)
+
+- name: Remove installation template
+  ansible.builtin.file:
+    path: "{{ int_reg_tmp_hana_install_config.path }}"
+    state: absent
+  when: (not int_fact_hana_installed and not ansible_check_mode) or
+        (not ansible_check_mode)

@@ -1,0 +1,14 @@
+---
+# Defaults for the HANA install roles
+hana_install_dir: "/hana/shared"
+hana_hostname: "{{ ansible_facts.hostname }}"
+hana_usage: "test"
+hana_volume_encryption: "n"
+hana_data_path: "/hana/data/{{ hana_sid }}"
+hana_log_path: "/hana/log/{{ hana_sid }}"
+hana_restrict_max_mem: "n"
+hana_max_memory: "0"
+hana_system_size_dependent_parameters: "n"
+hana_home: "/usr/sap/{{ hana_sid }}/home"
+hana_user_id: "30{{ hana_instance_number }}"
+hana_group_id: "79"

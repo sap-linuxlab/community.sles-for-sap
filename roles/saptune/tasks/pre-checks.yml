@@ -17,10 +17,10 @@
   ansible.builtin.assert:
     that: "'saptune' in ansible_facts.packages"
     fail_msg: >-
-      The package 'saptune' is not installed.  Install saptune 3.0 or prior to
-      running this role.
+      The package 'saptune' is not installed. Install saptune 3.0 or later
+      prior to running this role.
     success_msg: >-
-      The package saptune is installed.
+      The package 'saptune' is installed.
 
 - name: Assert that saptune is 3.0 or greater
   ansible.builtin.assert:
