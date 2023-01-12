@@ -1,0 +1,140 @@
+---
+- name: Ensure required variables are defined
+  ansible.builtin.assert:
+    that:
+      "{{ item }} is defined"
+    fail_msg: >-
+      The variable {{ item }} is not defined.  You must define and populate this
+      variable for this role to function.
+    success_msg: >-
+      The {{ item }} variable is correctly defined.
+  loop:
+    - hana_sid
+    - hana_instance_number
+    - hana_systemdb_password
+
+- name: Check hana_sid is compliant
+  ansible.builtin.assert:
+    that:
+      "hana_sid is ansible.builtin.regex('[A-Z]{1}[A-Z0-9]{2}')"
+    fail_msg: >-
+      hana_sid must consist of three characters. Characters must be
+      uppercase alphabetical characters or numbers only.  The first alphabetical
+      character.
+    success_msg: >-
+      hana_sid matches the required pattern.
+
+- name: Ensure that hana_sid is not a reserved SID name
+  ansible.builtin.assert:
+    that:
+      hana_sid not in int_var_reserved_sids
+    fail_msg: >-
+      hana_sid is set to {{ hana_sid }}, this is a reserved SID and cannot be
+      used.  Change the variable hana_sid to an allowed value.
+    success_msg: >-
+      hana_sid is not a reserved value
+
+- name: Check hdbsql binary data
+  ansible.builtin.stat:
+    path: "{{ int_var_hdbsql_path }}"
+    get_checksum: false
+  register: int_reg_hdbsql_check
+  changed_when: false
+  failed_when: false
+
+- name: Ensure hdbsql binary exists
+  ansible.builtin.assert:
+    that:
+      - not int_reg_hdbsql_check.failed
+      - int_reg_hdbsql_check.stat.exists
+      - int_reg_hdbsql_check.stat.isreg
+    fail_msg: >-
+      The expected file {{ int_var_hdbsql_path }} was not either not found or was not a
+      a regular file. This was not expected. Please report this error.
+    success_msg: >-
+      The file {{ int_var_hdbsql_path }} was found.
+
+- name: Ensure hdbsql binary is executable
+  ansible.builtin.assert:
+    that:
+      - int_reg_hdbsql_check.stat.executable
+    fail_msg: >-
+      The file {{ int_var_hdbsql_path }} was found but it is not executable. It is
+      necessary to add execute permission for the root user.
+    success_msg: >-
+      The file {{ int_var_hdbsql_path }} is executable.
+
+# The pre-checks need to run independently of the tasks section, so we need to
+# retrieve a list of tenants to check if a backup has already happened
+- name: Create random strings for temporary file
+  ansible.builtin.set_fact:
+    int_fact_pre_tenant_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_pre_tenant_results_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+- name: Get tenant names
+  block:
+    - name: Ensure all tenants query is copied to remote hosts
+      ansible.builtin.copy:
+        owner: root
+        group: root
+        mode: '0600'
+        src: files/all_tenants_query.sql
+        dest: "{{ int_fact_pre_tenant_query_file }}"
+
+    - name: Retrieve a list of database tenants
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_pre_tenant_query_file }} -o {{ int_fact_pre_tenant_results_file }}
+      # although this task does create an output file, it is considered to make
+      # no changes as the configuration of the systems isn't changed and
+      # ultimately the output file is removed
+      changed_when: false
+
+    - name: Read tenant file
+      ansible.builtin.command: "cat {{ int_fact_pre_tenant_results_file }}"
+      register: int_reg_tenant_list
+      changed_when: false
+
+  always:
+    # Unfortunately, you can't currently use loops within blocks, so we'll need
+    # to remove each temporary file with it's one module call
+    - name: Remove temporary backup query file
+      ansible.builtin.file:
+        path: "{{ int_fact_pre_tenant_query_file }}"
+        state: absent
+
+    - name: Remove temporary backup results file
+      ansible.builtin.file:
+        path: "{{ int_fact_pre_tenant_results_file }}"
+        state: absent
+
+- name: Set fact for database tenant names
+  ansible.builtin.set_fact:
+    int_fact_db_tenant_names: "{{
+        int_reg_tenant_list.stdout |
+        replace('\"', '') |
+        split('\n')
+      }}"
+
+- name: Find existing backups
+  ansible.builtin.find:
+    paths: "/usr/sap/{{ hana_sid }}/HDB{{ hana_instance_number }}/backup/data/SYSTEMDB"
+    recurse: true
+    use_regex: true
+    patterns:
+      - "^{{ backup_name }}"
+  register: int_reg_find_backups
+
+- name: Set action fact
+  ansible.builtin.set_fact:
+    int_fact_action: >-
+      {% if int_reg_find_backups.files | length > 0 %}Backups that matches the given parameters seem to have already been completed. No new backup will occur.
+      {% else %}No backup files were found that match the given parameters. A backup will be taken.
+      {% endif %}
+
+- name: Set backup needed flag
+  ansible.builtin.set_fact:
+    backup_needed: "{% if int_reg_find_backups.files | length > 0 %}false{% else %}true{% endif %}"
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: "{{ int_fact_action | trim }}"

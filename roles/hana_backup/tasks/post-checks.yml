@@ -1,0 +1,70 @@
+---
+# Check that the backup files exists
+
+# The post check need to run independently of the tasks section, so we need to
+# retrieve a list of tenants again
+- name: Create random strings for temporary file
+  ansible.builtin.set_fact:
+    int_fact_tenant_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_tenant_results_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+- name: Get tenant names
+  when: not backup_needed
+  block:
+    - name: Ensure all tenants query is copied to remote hosts
+      ansible.builtin.copy:
+        owner: root
+        group: root
+        mode: '0600'
+        src: files/all_tenants_query.sql
+        dest: "{{ int_fact_tenant_query_file }}"
+
+    - name: Retrieve a list of database tenants
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_tenant_query_file }} -o {{ int_fact_tenant_results_file }}
+      # The task will only run when a backup is not needed due to the block when
+      # condition, but to solve a linting error it is required to repeat it
+      # here.
+      when: not backup_needed
+
+    - name: Read tenant file
+      ansible.builtin.command: "cat {{ int_fact_tenant_results_file }}"
+      register: int_reg_tenant_list
+      changed_when: false
+
+  always:
+    # Unfortunately, you can't currently use loops within blocks, so we'll need
+    # to remove each temporary file with it's one module call
+    - name: Remove temporary backup query file
+      ansible.builtin.file:
+        path: "{{ int_fact_tenant_query_file }}"
+        state: absent
+
+    - name: Remove temporary backup command result file
+      ansible.builtin.file:
+        path: "{{ int_fact_tenant_results_file }}"
+        state: absent
+
+- name: Set fact for database tenant names
+  ansible.builtin.set_fact:
+    int_fact_db_tenant_names: "{{
+        int_reg_tenant_list.stdout |
+        replace('\"', '') |
+        split('\n')
+      }}"
+
+- name: Find existing backups
+  ansible.builtin.find:
+    paths: "/usr/sap/{{ hana_sid }}/HDB{{ hana_instance_number }}/backup/data/SYSTEMDB"
+    recurse: true
+    use_regex: true
+    patterns:
+      - "^{{ backup_name }}"
+  register: int_reg_post_find_backups
+
+- name: Assert SYSTEMDB backup is completed
+  ansible.builtin.assert:
+    that: int_reg_post_find_backups.files | length > 0
+    success_msg: >-
+      Backups files that match the expected format were found, this
+      suggests that the backup was completed successfully.
