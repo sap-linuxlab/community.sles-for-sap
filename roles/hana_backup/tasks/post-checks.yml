@@ -1,0 +1,119 @@
+# Check that the backup files exists
+# The post check need to run independently of the tasks section, so we need to
+# retrieve a list of tenants again
+- name: Create random strings for temporary file
+  ansible.builtin.set_fact:
+    int_fact_post_backup_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_post_backup_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_post_backup_file_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_post_backup_file_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+  check_mode: false
+
+- name: Get latest full backups
+  when: not backup_needed
+  block:
+    - name: Copy backup query hosts
+      ansible.builtin.copy:
+        owner: root
+        group: root
+        mode: '0600'
+        src: files/latest_complete_backups.sql
+        dest: "{{ int_fact_post_backup_query_file }}"
+      changed_when: false
+      check_mode: false
+
+    - name: Get latest backup data
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_post_backup_query_file }} -o {{ int_fact_post_backup_result_file }}
+      # although this task does create an output file, it is considered to make
+      # no changes as the configuration of the systems isn't changed and
+      # ultimately the output file is removed
+      changed_when: false
+      check_mode: false
+
+    - name: Read tenant information
+      community.general.read_csv:
+        path: "{{ int_fact_post_backup_result_file }}"
+      register: int_reg_latest_full_backups
+      check_mode: false
+
+  always:
+    - name: Remove temporary query file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_backup_query_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+    - name: Remove temporary results file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_backup_result_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+- name: Get backup file locations
+  when: not backup_needed
+  block:
+    - name: Populate backup files template
+      ansible.builtin.template:
+        dest: "{{ int_fact_post_backup_file_query_file }}"
+        owner: root
+        src: templates/get_backup_file_locations.j2
+        group: root
+        mode: '0600'
+      changed_when: false
+      check_mode: false
+
+    - name: Get latest backup data file locations
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_post_backup_file_query_file }} -o {{ int_fact_post_backup_file_result_file }}
+      # although this task does create an output file, it is considered to make
+      # no changes as the configuration of the systems isn't changed and
+      # ultimately the output file is removed
+      changed_when: false
+      check_mode: false
+
+    - name: Read backup file information
+      community.general.read_csv:
+        path: "{{ int_fact_post_backup_file_result_file }}"
+      register: int_reg_backup_files
+      check_mode: false
+
+  always:
+    - name: Remove backup files query file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_backup_file_query_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+    - name: Remove backup files result file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_backup_file_result_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+- name: Get backup file data
+  ansible.builtin.stat:
+    path: "{{ item.DESTINATION_PATH }}"
+    get_checksum: false
+  loop: "{{ int_reg_backup_files.list }}"
+  register: int_reg_backup_file_stat
+  when: not backup_needed
+  check_mode: false
+
+- name: Assert that backup files exist
+  ansible.builtin.assert:
+    that: item.stat.exists
+    fail_msg: >-
+      The backup file "{{ item.stat.path }}" is part of the latest full backup
+      taken, but it is not present in the file system. This suggests that the
+      database may not be recoverable. Make a new file based backup manually
+      to continue!
+    success_msg: >-
+      Backup file {{ item.stat.path }} exists
+  loop: "{{ int_reg_backup_file_stat.results }}"
+  when: not backup_needed
+  check_mode: false
