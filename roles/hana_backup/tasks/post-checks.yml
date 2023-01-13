@@ -1,6 +1,4 @@
----
 # Check that the backup files exists
-
 # The post check need to run independently of the tasks section, so we need to
 # retrieve a list of tenants again
 - name: Create random strings for temporary file

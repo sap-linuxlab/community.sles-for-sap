@@ -29,10 +29,6 @@
     - name: Retrieve a list of database tenants for backup
       ansible.builtin.command: >-
         {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_tmp_backup_query_file }} -o {{ int_fact_tmp_results_file }}
-      # The task will only run when a backup is needed due to the block when
-      # condition, but to solve a linting error it is required to repeat it
-      # here.
-      when: backup_needed
       # Again, hdbsql is only selecting from monitoring tables and reading and
       # writing to files that are ephemeral, therefore these DB operation are
       # not considered to be changes
@@ -91,4 +87,5 @@
 
 - name: Set backup_needed fact to false
   ansible.builtin.set_fact:
-    backup_needed: false | bool
+    backup_needed: "{{ false | bool }}"
+  when: not ansible_check_mode
