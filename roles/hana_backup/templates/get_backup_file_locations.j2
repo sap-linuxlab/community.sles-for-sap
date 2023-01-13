@@ -1,0 +1,15 @@
+SELECT 
+  DATABASE_NAME,
+  DESTINATION_PATH
+FROM
+  "SYS_DATABASES"."M_BACKUP_CATALOG_FILES"
+WHERE
+  BACKUP_ID IN (
+{% for tenant in int_reg_latest_full_backups.list %}
+{% if not loop.last %}
+  '{{ tenant.BACKUP_ID }}',
+{% else %}
+  '{{ tenant.BACKUP_ID }}'
+{% endif %}
+{% endfor %}
+);

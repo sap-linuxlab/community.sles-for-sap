@@ -5,20 +5,25 @@ instance, including the systemdb. Running a backup is a prerequisite for
 configuring HANA System Replication. As HANA clusters rely on HANA System
 Replication, a backup must be conducted prior to clustering. In addition, HANA
 log backups will not occur until a full backup has been taken. Failure to create
-a backup will eventually lead to the log volume filling causing the database to
-fail.
+a backup will eventually lead to the log volume filling up and causing the
+database to fail.
 
 The role queries the database to retrieve a list of databases within the
-instance. Ansible creates a file containing the required SQL commands to backup
-all discovered databases.
+instance. The role checks if the HANA database has been previously been backed
+up. If a backup has previously occurred, and the backup files are still in their
+written location, the role will not conduct another backup.
 
 By default, a file-based full backup for each database will be created in its
 default location. Each database will have the name 'ANSIBLE_INITIAL_BACKUP'.
 The backup name can be set to a custom value. At this time, there is no plan to
 add support for backing up to a custom path.
 
-This role is intended to perform the initial backup of HANA. Using this role as
-a backup solution is not recommended as is unsupported.
+This role communicates with the HANA database by writing SQL commands to files.
+These files are then read by the HANA client `hdbsql`. The output of queries are
+also written to disk. A files are removed even if tasks in the role fail.
+
+This role is intended to perform the initial backup of HANA only! Using this
+role as a backup solution is not recommended as is unsupported.
 
 ## Variables
 
@@ -33,4 +38,11 @@ The following variables are mandatory:
 The following variables are optional:
 
 * backup_name - the label assigned to the backup, used mostly for reference.
-  Default: initial_backup
+  Default: ANSIBLE_INITIAL_BACKUP
+
+## Check mode
+
+The role supports ansible check mode. In check mode, no changes will be made to
+the system and no backups will be made. The task `Print required action` will
+print a plain English description of what the role will do in the role were
+run without check mode enabled.

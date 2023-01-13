@@ -10,7 +10,7 @@
 # tasks fail. For that reason the following commands are in a block which has an
 # always
 - name: Backup
-  when: backup_needed
+  when: backup_needed and not ansible_check_mode
   block:
     - name: Ensure all tenants query is copied to remote hosts
       ansible.builtin.copy:
@@ -19,6 +19,12 @@
         mode: '0600'
         src: files/all_tenants_query.sql
         dest: "{{ int_fact_tmp_backup_query_file }}"
+      # although a file is being written to the host, it is ephemeral as it
+      # always removed, even if tasks in the block fail. Therefore, the authors
+      # do not consider writing this file as changing the system configuration
+      # the same is true of the delete operations for these temporary files
+      changed_when: false
+
 
     - name: Retrieve a list of database tenants for backup
       ansible.builtin.command: >-
@@ -27,6 +33,10 @@
       # condition, but to solve a linting error it is required to repeat it
       # here.
       when: backup_needed
+      # Again, hdbsql is only selecting from monitoring tables and reading and
+      # writing to files that are ephemeral, therefore these DB operation are
+      # not considered to be changes
+      changed_when: false
 
     # It's not ideal to use command and cat like this, but the alternative is to
     # copy the remote files back to the controller which is probably a worse
@@ -47,6 +57,7 @@
         owner: root
         group: root
         mode: '0600'
+      changed_when: false
 
     # Need to set a when condition!
     - name: Run backups
@@ -57,12 +68,6 @@
       # here.
       when: backup_needed
 
-    # With the backup now done, the backup_needed fact is set to false, so that
-    # the post checks know that the backup is done
-    - name: Set backup_needed fact to false
-      ansible.builtin.set_fact:
-        backup_needed: false | bool
-
   always:
     # Unfortunately, you can't currently use loops within blocks, so we'll need
     # to remove each temporary file with it's one module call
@@ -70,13 +75,20 @@
       ansible.builtin.file:
         path: "{{ int_fact_tmp_backup_query_file }}"
         state: absent
+      changed_when: false
 
     - name: Remove temporary backup command result file
       ansible.builtin.file:
-        path: "{{ int_fact_tmp_backup_command_file }}"
+        path: "{{ int_fact_tmp_results_file }}"
         state: absent
+      changed_when: false
 
     - name: Remove temporary backup command file
       ansible.builtin.file:
         path: "{{ int_fact_tmp_backup_command_file }}"
         state: absent
+      changed_when: false
+
+- name: Set backup_needed fact to false
+  ansible.builtin.set_fact:
+    backup_needed: false | bool
