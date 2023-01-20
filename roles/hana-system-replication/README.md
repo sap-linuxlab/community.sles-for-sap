@@ -7,12 +7,9 @@ the clustering roles.
 
 The role performs the following tasks:
 
-* Ensure that all hosts /etc/hosts file contain all hosts required by HANA
-  System replication (optional)
-* Ensures HANA System Replication specific network configuration is achieved
 * Ensure that the System PKI files are synced from primary host to secondary
   host
-* Enable
+* HANA System Replication is configured as specified
 
 ## Variables
 
@@ -21,12 +18,19 @@ The role performs the following tasks:
 * hana-sid - the three character 'System ID' of the HANA installation.
 * instance number - the two digit instance ID of the HANA installation.
 * hana_systemdb_password - the password of the HANA used that will update the
-* hana_system_replication_nodes - a list of dictionaries that express the node configuration.
-  * hostname - the short hostname of the node
-  * ip_address - the ip_address to use for HANA system replication
-  * role - the role of the node within HANA system replication, allowed values
-    are 'primary' & 'secondary'
-  * site - the alias used to represent your the site where the node resides.
+* hana_system_replication_nodes - a list of dictionaries that express the node
+  configurations.
+  
+The elements of the `hana_system_replication_nodes` are as follows.
+
+* hostname - the short hostname of the node
+* ip_address - the ip_address to use for HANA system replication
+* role - the role of the node within HANA system replication, allowed values
+  are 'primary' & 'secondary'
+* site - the alias used to represent your the site where the node resides.
+
+Exactly **two** elements should be specified. See the example playbooks in the
+[playbooks directory](../../playbooks).
 
 ### Optional variables
 
