@@ -21,8 +21,7 @@ The role performs the following tasks:
 * hana-sid - the three character 'System ID' of the HANA installation.
 * instance number - the two digit instance ID of the HANA installation.
 * hana_systemdb_password - the password of the HANA used that will update the
-* hana_system_replication_nodes - a list of dictionaries that express the node
-    configuration. The dictionary elements are as follows:
+* hana_system_replication_nodes - a list of dictionaries that express the node configuration.
   * hostname - the short hostname of the node
   * ip_address - the ip_address to use for HANA system replication
   * role - the role of the node within HANA system replication, allowed values
