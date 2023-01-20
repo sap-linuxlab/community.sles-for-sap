@@ -1,0 +1,35 @@
+---
+- name: Check hdbsql binary data
+  ansible.builtin.stat:
+    path: "{{ int_var_hdbsql_path }}"
+    get_checksum: false
+  register: int_reg_hdbsql_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Ensure hdbsql binary exists
+  ansible.builtin.assert:
+    that:
+      - not int_reg_hdbsql_check.failed
+      - int_reg_hdbsql_check.stat.exists
+      - int_reg_hdbsql_check.stat.isreg
+    fail_msg: >-
+      The expected file {{ int_var_hdbsql_path }} was not either not found or was not a
+      a regular file. This was not expected. Please report this error.
+    success_msg: >-
+      The file {{ int_var_hdbsql_path }} was found.
+  # Always run normally, even in check_mode
+  check_mode: false
+
+- name: Ensure hdbsql binary is executable
+  ansible.builtin.assert:
+    that:
+      - int_reg_hdbsql_check.stat.executable
+    fail_msg: >-
+      The file {{ int_var_hdbsql_path }} was found but it is not executable. It is
+      necessary to add execute permission for the root user.
+    success_msg: >-
+      The file {{ int_var_hdbsql_path }} is executable.
+  # Always run normally, even in check_mode
+  check_mode: false

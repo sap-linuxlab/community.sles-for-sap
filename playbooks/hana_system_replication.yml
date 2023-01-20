@@ -1,0 +1,22 @@
+---
+- name: Use sles_register role
+  hosts: all
+  remote_user: sstringer
+  become: true
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hana_systemdb_password: 'AnExamplePassw0rd'
+    hana_system_replication_nodes:
+      - hostname: 'hana01'
+        ip_address: '10.10.10.10'
+        role: 'primary'
+        site: 'Node01'
+      - hostname: 'hana02'
+        ip_address: '10.10.10.11'
+        role: 'secondary'
+        site: 'Node02'
+    hsr_replication_mode: 'sync'
+
+  roles:
+    - { role: ../roles/hana-system-replication }

@@ -1,0 +1,222 @@
+---
+- name: Set random query file paths
+  ansible.builtin.set_fact:
+    int_fact_post_sys_rep_general_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_post_sys_rep_general_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+
+- name: Get HANA System Replication configuration
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  block:
+    # As the file created here is temporary, doesn't change the configuration
+    # of the target system and will be deleted, this and other file operations
+    # are not considered to make no changes
+    - name: Copy HANA System Replication query to primary
+      ansible.builtin.copy:
+        src: 'files/get_system_replication_status.sql'
+        dest: "{{ int_fact_post_sys_rep_general_query_file }}"
+        owner: 'root'
+        group: 'root'
+        mode: '0600'
+      changed_when: false
+      # Always run, even in check mode
+      check_mode: false
+
+    # As above, this is a SELECT query, and therefore doesn't change the
+    # database so it considered as a none changing task
+    - name: Get SAP HANA System Configuration Information
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_post_sys_rep_general_query_file }} -o {{ int_fact_post_sys_rep_general_result_file }}
+      changed_when: false
+      check_mode: false
+
+    - name: Read SAP HANA System Replication configuration
+      community.general.read_csv:
+        path: "{{ int_fact_post_sys_rep_general_result_file }}"
+      register: int_post_reg_hsr_config
+      check_mode: false
+
+  always:
+    # Blocks don't work with loops, so each file has to be deleted individually
+    # but using blocks and the ensures that temporary files are always deleted
+    # even if the tasks fail
+    - name: Remove temporary query file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_sys_rep_general_query_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+    - name: Remove temporary result file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_sys_rep_general_result_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+# The following fact assumes that that the configured solution matches our
+# desired solution. Then a series of tests can change this assumption to 'false'
+# if it is found that the configured solution differs.
+- name: Set solution configuration fact
+  ansible.builtin.set_fact:
+    int_fact_solution_match: true
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+
+- name: Assert configured primary hostname matches configured hostname
+  ansible.builtin.assert:
+    that: >-
+      int_post_reg_hsr_config.list |
+      map(attribute='HOST') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication primary hostname does not match
+      the hostname specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured hostnames primary hostname match.
+  vars:
+    q1: "[?role=='primary' ].hostname"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured secondary hostname matches configured secondary hostname
+  ansible.builtin.assert:
+    that: >-
+      int_post_reg_hsr_config.list |
+      map(attribute='SECONDARY_HOST') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication secondary hostname does not match
+      the hostname specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured hostnames secondary hostname match.
+  vars:
+    q1: "[?role=='secondary' ].hostname"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured primary site name matches desired site name
+  ansible.builtin.assert:
+    that: >-
+      int_post_reg_hsr_config.list |
+      map(attribute='SITE_NAME') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication primary site does not match
+      the site name specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured primary site name match.
+  vars:
+    q1: "[?role=='primary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured secondary site name matches desired site name
+  ansible.builtin.assert:
+    that: >-
+      int_post_reg_hsr_config.list |
+      map(attribute='SECONDARY_SITE_NAME') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication secondary site does not match
+      the secondary site name specified in the Ansible configuration. This
+      indicates that the configured HANA System Replication configuration does
+      not match the configuration specified in the role configuration. It is
+      most likely that HANA System Replication has been configured manually or
+      by a different process.
+    success_msg: >-
+      The desired and configured secondary site name match.
+  vars:
+    q1: "[?role=='secondary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured replication mode desired replication mode
+  ansible.builtin.assert:
+    that: >-
+      int_post_reg_hsr_config.list |
+      map(attribute='REPLICATION_MODE') |
+      first ==
+      hsr_replication_mode |
+      upper
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication mode does not match the replication
+      mode specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured replication mode match
+      ({{ hsr_replication_mode }}).
+  vars:
+    q1: "[?role=='secondary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured HANA System Replication operation mode desired operation mode
+  ansible.builtin.assert:
+    that: >-
+      int_post_reg_hsr_config.list |
+      map(attribute='OPERATION_MODE') |
+      first ==
+      hsr_operation_mode
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication mode does not match the replication
+      mode specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured replication mode match
+      ({{ hsr_operation_mode }}).
+  vars:
+    q1: "[?role=='secondary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false

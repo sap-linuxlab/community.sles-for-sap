@@ -1,0 +1,24 @@
+---
+int_var_ipv4_regex: '^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$'
+int_var_replication_modes_allowed:
+  - 'sync'
+  - 'syncmem'
+  - 'async'
+
+int_var_operation_modes_allowed:
+  - 'delta_datashipping'
+  - 'logreplay'
+  - 'logreplay_readaccess'
+
+int_var_listeninterface_allowed:
+  - 'global'
+  - 'internal'
+
+# The values here are bools and not strings!
+int_var_update_host_file_allowed:
+  - true
+  - false
+
+int_var_pki_files:
+  - "/usr/sap/{{ hana_sid }}/SYS/global/security/rsecssfs/data/SSFS_{{ hana_sid }}.DAT"
+  - "/usr/sap/{{ hana_sid }}/SYS/global/security/rsecssfs/key/SSFS_{{ hana_sid }}.KEY"

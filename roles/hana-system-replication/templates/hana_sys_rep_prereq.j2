@@ -1,0 +1,5 @@
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('system_replication_communication', 'listeninterface') = '.global' WITH RECONFIGURE;
+{% for node in hana_system_replication_nodes %}
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('system_replication_hostname_resolution', '{{ node.ip_address}} ') = '{{ node.hostname }}' WITH RECONFIGURE;
+{% endfor %}
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('system_replication_communication', 'allowed_sender') = '{{ hana_system_replication_nodes | join(',', attribute='ip_address') }}' WITH RECONFIGURE;
