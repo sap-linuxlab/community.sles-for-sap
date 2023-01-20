@@ -23,6 +23,7 @@ The role performs the following tasks:
 * hana_systemdb_password - the password of the HANA used that will update the
 * hana_system_replication_nodes - a list of dictionaries that express the node
   configuration. The dictionary elements are as follows:
+  
   * hostname - the short hostname of the node
   * ip_address - the ip_address to use for HANA system replication
   * role - the role of the node within HANA system replication, allowed values
