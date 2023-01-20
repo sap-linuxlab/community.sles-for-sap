@@ -1,0 +1,526 @@
+---
+- name: Include hana sid and instance variables
+  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
+
+- name: Include hdbsql variables
+  ansible.builtin.include_vars: ../shared/vars/hdbsql-vars.yml
+
+- name: Include hdbsql checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
+
+- name: Ensure required variables are defined
+  ansible.builtin.assert:
+    that:
+      - item is defined
+      - item != ''
+    fail_msg: >-
+      The variable {{ item }} is either not defined or is empty. You must
+      define and populate this variable for this role to function.
+    success_msg: >-
+      The {{ item }} variable is correctly defined and is not empty.
+  loop:
+    - hana_sid
+    - hana_instance_number
+    - primary_systemdb_password
+    # Add more as we go
+
+- name: Ensure that hana_system_replication_nodes is defined and populated
+  ansible.builtin.assert:
+    that:
+      - hana_system_replication_nodes is defined
+      - hana_system_replication_nodes | length == 2
+    fail_msg: >-
+      The variable hana_system_replication_nodes is either not defined or does
+      not contain exactly two elements. You must define and populate this with
+      exactly two elements.
+    success_msg: >-
+      The variable hana_system_replication_nodes is defined and contains the
+      correct amount of elements (2).
+
+- name: Ensure that hostname variable in hana_system_replication_nodes are correctly populated
+  ansible.builtin.assert:
+    that:
+      - item.hostname is defined
+      - item.hostname != ''
+      - item.hostname is not ansible.builtin.regex('\.')
+    fail_msg: >-
+      The hostname variable within hana_system_replication_nodes is either not
+      defined, not populated or contains one or more '.' characters. Ensure that
+      this variable is populated for each node and is a short hostname.
+    success_msg:
+      The hostname variable within hana_system_replication_nodes is correctly
+      defined and populated.
+  loop: "{{ hana_system_replication_nodes }}"
+
+- name: Ensure that ip_address variable in hana_system_replication_nodes are correctly populated
+  ansible.builtin.assert:
+    that:
+      - item.ip_address is defined
+      - item.ip_address is ansible.builtin.regex(int_var_ipv4_regex)
+    fail_msg: >-
+      The ip_address variable within hana_system_replication_nodes is either not
+      defined or is not populated correctly. Ensure that this variable
+      populated with a valid ipv4 address.
+    success_msg:
+      The ip_address variable within hana_system_replication_nodes is correctly
+      defined and populated.
+  loop: "{{ hana_system_replication_nodes }}"
+
+- name: Ensure that role variable in hana_system_replication_nodes are correctly populated
+  ansible.builtin.assert:
+    that:
+      - item.role is defined
+      - item.role == 'primary' or item.role == 'secondary'
+    fail_msg: >-
+      The role variable within hana_system_replication_nodes is either not
+      defined or not populated correctly. Ensure that this variable is populated
+      with the 'primary' or 'secondary' only. A valid configuration includes
+      only one primary and one secondary.
+      each node.
+    success_msg:
+      The role variable within hana_system_replication_nodes is correctly
+      defined and populated.
+  loop: "{{ hana_system_replication_nodes }}"
+
+- name: Ensure that site variable in hana_system_replication_nodes are correctly populated
+  ansible.builtin.assert:
+    that:
+      - item.site is defined
+      - item.site != ''
+    fail_msg: >-
+      The site variable within hana_system_replication_nodes is either not
+      defined or is not populated. Ensure that this variable is populated for
+      each node.
+    success_msg:
+      The site variable within hana_system_replication_nodes is correctly
+      defined and populated.
+  loop: "{{ hana_system_replication_nodes }}"
+
+- name: Ensure that elements in hana_system_replication_nodes are unique
+  ansible.builtin.assert:
+    that: >-
+      hana_system_replication_nodes | map(attribute='{{ item }}') | list | count
+      ==
+      hana_system_replication_nodes | map(attribute='{{ item }}') | list | unique | count
+    fail_msg: >-
+      hana_system_replication_nodes has two elements that are the same.
+      The element {{ item }} is set to the same value for both nodes, which is
+      not valid. This needs to be corrected for the role to run.
+    success_msg: >-
+      The element {{ item }} is unique for each node.
+  loop:
+    - hostname
+    - ip_address
+    - role
+    - site
+
+# Here we set the primary host. Some tasks for system replication are only
+# conducted on the primary whereas some are only conducted on the secondary.
+
+- name: Set primary host
+  ansible.builtin.set_fact:
+    int_var_node_is_primary: "{{
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first == inventory_hostname }}"
+  vars:
+    q1: "[?role=='primary' ].hostname"
+
+- name: Set primary hostname fact
+  ansible.builtin.set_fact:
+    int_var_primary_hostname: "{{
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first }}"
+  vars:
+    q1: "[?role=='primary' ].hostname"
+
+- name: Set secondary hostname fact
+  ansible.builtin.set_fact:
+    int_var_secondary_hostname: "{{
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first }}"
+  vars:
+    q1: "[?role=='secondary' ].hostname"
+
+- name: Set primary site name
+  ansible.builtin.set_fact:
+    int_var_primary_site: "{{
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first }}"
+  vars:
+    q1: "[?role=='primary' ].site"
+
+- name: Set secondary site name
+  ansible.builtin.set_fact:
+    int_var_secondary_site: "{{
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first }}"
+  vars:
+    q1: "[?role=='secondary' ].site"
+
+- name: Ensure that hsr_replication_mode is correctly set
+  ansible.builtin.assert:
+    that:
+      hsr_replication_mode in int_var_replication_modes_allowed
+    fail_msg: >-
+      hsr_replication_mode is incorrectly set to '{{ hsr_replication_mode }}'.
+      Allowed values are 'sync', 'syncmem' & 'async'.
+    success_msg: >-
+      hsr_replication_mode is set correctly
+
+- name: Ensure that hsr_operation_mode is correctly set
+  ansible.builtin.assert:
+    that:
+      hsr_operation_mode in int_var_operation_modes_allowed
+    fail_msg: >-
+      The variable 'hsr_operation_mode' is incorrectly set to
+      '{{ hsr_operation_mode }}'. Allowed values are 'delta_datashipping',
+      'logreplay' & 'logreplay_readaccess'.
+    success_msg: >-
+      The variable 'hsr_operation_mode' is set correctly
+
+- name: Ensure that listeninterface is correctly set
+  ansible.builtin.assert:
+    that:
+      listeninterface in int_var_listeninterface_allowed
+    fail_msg: >-
+      The variable 'listeninterface' is incorrectly set to
+      '{{ listeninterface }}'. Allowed values are 'global' & 'internal'.
+    success_msg:
+      The variable 'int_var_listeninterface_allowed' is correctly set.
+
+- name: Set random file names for SQL query and result files
+  ansible.builtin.set_fact:
+    int_fact_sys_rep_tier_count_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_sys_rep_tier_count_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_sys_rep_general_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_sys_rep_general_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+
+- name: Check for three multi-tier configuration
+  when: int_var_node_is_primary
+  block:
+    # As the file created here is temporary, doesn't change the configuration
+    # of the target system and will be deleted, this and other file operations
+    # are not considered to make no changes
+    - name: Copy tier count query to primary
+      ansible.builtin.copy:
+        src: 'files/get_number_of_configured_tiers.sql'
+        dest: "{{ int_fact_sys_rep_tier_count_query_file }}"
+        owner: 'root'
+        group: 'root'
+        mode: '0600'
+      changed_when: false
+      check_mode: false
+
+    # As above, this is a SELECT query, and therefore doesn't change the
+    # database so it considered as a none changing task
+    - name: Get number of configured system replication tiers
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_sys_rep_tier_count_query_file }} -o {{ int_fact_sys_rep_tier_count_result_file }}
+      changed_when: false
+      check_mode: false
+
+    - name: Read tenant information
+      community.general.read_csv:
+        path: "{{ int_fact_sys_rep_tier_count_result_file }}"
+      register: int_reg_number_of_configured_tiers
+      check_mode: false
+
+  always:
+    # Blocks don't work with loops, so each file has to be deleted individually
+    # but using blocks and the ensures that temporary files are always deleted
+    # even if the tasks fail
+    - name: Remove temporary query file
+      ansible.builtin.file:
+        path: "{{ int_fact_sys_rep_tier_count_query_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+    - name: Remove temporary result file
+      ansible.builtin.file:
+        path: "{{ int_fact_sys_rep_tier_count_result_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+- name: Assert a three tier configuration is not present
+  ansible.builtin.assert:
+    that: >-
+      int_reg_number_of_configured_tiers.list |
+      map(attribute='TIERS') |
+      first |
+      int <= 2
+    fail_msg: >-
+      The system is currently configured with more than two tiers of HANA
+      System Replication. The role can only configure two tiers of HANA System
+      Replication and therefore cannot continue.
+    success_msg: >-
+      The systems currently has
+      {{ int_reg_number_of_configured_tiers.list[0].TIERS | first }} tier/s.
+  check_mode: false
+  when: int_var_node_is_primary
+
+  # If the tier count is 0, then we know that HANA System Replication is not
+  # configured and the some of the following should be skipped.
+- name: Set HANA System Replication configured fact on primary
+  ansible.builtin.set_fact:
+    int_fact_hsr_configured: >-
+      {% if int_reg_number_of_configured_tiers.list[0].TIERS | first | int == 0 %}false{% else %}true{% endif %}
+  when: int_var_node_is_primary
+  check_mode: false
+
+- name: Set HANA System Replication configured fact non primary nodes
+  ansible.builtin.set_fact:
+    int_fact_hsr_configured: "{{ hostvars[int_var_primary_hostname]['int_fact_hsr_configured'] }}"
+  vars:
+    q1: "[?role=='primary' ].hostname"
+  when: not int_var_node_is_primary
+  check_mode: false
+
+- name: Get HANA System Replication configuration
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  block:
+    # As the file created here is temporary, doesn't change the configuration
+    # of the target system and will be deleted, this and other file operations
+    # are not considered to make no changes
+    - name: Copy HANA System Replication query to primary
+      ansible.builtin.copy:
+        src: 'files/get_system_replication_status.sql'
+        dest: "{{ int_fact_sys_rep_general_query_file }}"
+        owner: 'root'
+        group: 'root'
+        mode: '0600'
+      changed_when: false
+      check_mode: false
+
+    # As above, this is a SELECT query, and therefore doesn't change the
+    # database so it considered as a none changing task
+    - name: Get SAP HANA System Configuration Information
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_sys_rep_general_query_file }} -o {{ int_fact_sys_rep_general_result_file }}
+      changed_when: false
+      check_mode: false
+
+    - name: Read SAP HANA System Replication configuration
+      community.general.read_csv:
+        path: "{{ int_fact_sys_rep_general_result_file }}"
+      register: int_reg_hsr_config
+      check_mode: false
+
+  always:
+    # Blocks don't work with loops, so each file has to be deleted individually
+    # but using blocks and the ensures that temporary files are always deleted
+    # even if the tasks fail
+    - name: Remove temporary query file
+      ansible.builtin.file:
+        path: "{{ int_fact_sys_rep_general_query_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+    - name: Remove temporary result file
+      ansible.builtin.file:
+        path: "{{ int_fact_sys_rep_general_result_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+# The following fact assumes that that the configured solution matches our
+# desired solution. Then a series of tests can change this assumption to 'false'
+# if it is found that the configured solution differs.
+- name: Set solution configuration fact
+  ansible.builtin.set_fact:
+    int_fact_solution_match: true
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured primary hostname matches configured hostname
+  ansible.builtin.assert:
+    that: >-
+      int_reg_hsr_config.list |
+      map(attribute='HOST') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication primary hostname does not match
+      the hostname specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured hostnames primary hostname match.
+  vars:
+    q1: "[?role=='primary' ].hostname"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured secondary hostname matches configured secondary hostname
+  ansible.builtin.assert:
+    that: >-
+      int_reg_hsr_config.list |
+      map(attribute='SECONDARY_HOST') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication secondary hostname does not match
+      the hostname specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured hostnames secondary hostname match.
+  vars:
+    q1: "[?role=='secondary' ].hostname"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured primary site name matches desired site name
+  ansible.builtin.assert:
+    that: >-
+      int_reg_hsr_config.list |
+      map(attribute='SITE_NAME') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication primary site does not match
+      the site name specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured primary site name match.
+  vars:
+    q1: "[?role=='primary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured secondary site name matches desired site name
+  ansible.builtin.assert:
+    that: >-
+      int_reg_hsr_config.list |
+      map(attribute='SECONDARY_SITE_NAME') |
+      first ==
+      hana_system_replication_nodes |
+      community.general.json_query(q1) |
+      first
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication secondary site does not match
+      the secondary site name specified in the Ansible configuration. This
+      indicates that the configured HANA System Replication configuration does
+      not match the configuration specified in the role configuration. It is
+      most likely that HANA System Replication has been configured manually or
+      by a different process.
+    success_msg: >-
+      The desired and configured secondary site name match.
+  vars:
+    q1: "[?role=='secondary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured replication mode desired replication mode
+  ansible.builtin.assert:
+    that: >-
+      int_reg_hsr_config.list |
+      map(attribute='REPLICATION_MODE') |
+      first ==
+      hsr_replication_mode |
+      upper
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication mode does not match the replication
+      mode specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured replication mode match
+      ({{hsr_replication_mode}}).
+  vars:
+    q1: "[?role=='secondary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Assert configured HANA System Replication operation mode desired operation mode
+  ansible.builtin.assert:
+    that: >-
+      int_reg_hsr_config.list |
+      map(attribute='OPERATION_MODE') |
+      first ==
+      hsr_operation_mode
+    msg: Matches
+    fail_msg: >-
+      The configured HANA System Replication mode does not match the replication
+      mode specified in the Ansible configuration. This indicates that
+      the configured HANA System Replication configuration does not match the
+      configuration specified in the role configuration. It is most likely that
+      HANA System Replication has been configured manually or by a different
+      process.
+    success_msg: >-
+      The desired and configured replication mode match
+      ({{ hsr_operation_mode }}).
+  vars:
+    q1: "[?role=='secondary' ].site"
+  when:
+    - int_var_node_is_primary
+    - int_fact_hsr_configured
+  check_mode: false
+
+- name: Set action fact
+  ansible.builtin.set_fact:
+    int_fact_action: >-
+      {% if int_fact_hsr_configured %}
+      The requested HANA System Replication configuration is already in place.
+      No changes will be made
+      {% else %}
+      No System Replication configuration was found. The requested System
+      Replication configuration will be applied.
+      {% endif %}
+  check_mode: false
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: "{{ int_fact_action | trim }}"
+  check_mode: false
+
+# For now, these are the pre-checks done. The role will have failed if the
+# real configuration doesn't match the desired configuration. Tasks in the tasks
+# file will need to skip if `int_fact_hsr_configured` is true will needs.
+# This will need to be revisited to add a 'destructive mode' that will remove
+# existing HSR configurations if they exists!

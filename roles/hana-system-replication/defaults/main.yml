@@ -1,0 +1,6 @@
+---
+systemdb_user: 'SYSTEM'
+hsr_replication_mode: 'sync'
+hsr_operation_mode: 'logreplay'
+listeninterface: 'global'
+update_hosts_file: true

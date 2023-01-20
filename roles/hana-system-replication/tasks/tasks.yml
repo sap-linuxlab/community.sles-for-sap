@@ -1,0 +1,111 @@
+---
+- name: Set random file names for SQL query and result files
+  ansible.builtin.set_fact:
+    int_fact_sys_rep_prereq_sql: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+  when: not int_fact_hsr_configured
+
+# Perhaps some future development could improve idempotency here and only copy
+# and execute SQL when needed. However, SQL won't update anything if it's
+# configured as expected, so that could be overkill.
+- name: Perform prerequisite SQL on both HANA nodes
+  when:
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+  block:
+
+    - name: Copy prerequisite SQL on both HANA nodes
+      ansible.builtin.template:
+        src: 'templates/hana_sys_rep_prereq.j2'
+        dest: "{{ int_fact_sys_rep_prereq_sql }}"
+        owner: "{{ hana_sid | lower }}adm"
+        group: 'sapsys'
+        mode: '660'
+      # Ephemeral files are not considered a change to the system
+      changed_when: false
+
+    - name: Execute prerequisite SQL on both HANA nodes
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_sys_rep_prereq_sql }}
+      # The below when statement is already inherited by the block and is not
+      # necessary but fixes a linting problem
+      when: not int_fact_hsr_configured
+
+  always:
+    - name: Remove query file
+      ansible.builtin.file:
+        path: "{{ int_fact_sys_rep_prereq_sql }}"
+        state: absent
+      # Ephemeral files are not considered a change to the system
+      changed_when: false
+
+# TODO - check the HANA is running before trying to stop it!
+- name: Stop HANA on secondary node
+  ansible.builtin.command: >-
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
+  when:
+    - not int_var_node_is_primary
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+
+- name: Clear secondary PKI files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: 'absent'
+  loop: "{{ int_var_pki_files }}"
+  when:
+    - not int_var_node_is_primary
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+
+- name: Copy primary PKI files to secondary
+  ansible.posix.synchronize:
+    src: "{{ item }}"
+    dest: "{{ item }}"
+    owner: true
+    perms: true
+    mode: push
+    set_remote_user: false
+  delegate_to: "{{ int_var_primary_hostname }}"
+  loop: "{{ int_var_pki_files }}"
+  when:
+    - not int_var_node_is_primary
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+
+- name: Enable System Replication on primary
+  ansible.builtin.shell: >-
+    . ~/.bashrc &&
+    /usr/sap/{{ hana_sid }}/HDB{{ hana_instance_number }}/exe/hdbnsutil -sr_enable --name={{ int_var_primary_site }}
+  become: true
+  become_user: "{{ hana_sid | lower }}adm"
+  when:
+    - int_var_node_is_primary
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+
+- name: Enable System Replication on secondary
+  ansible.builtin.shell: >-
+    . ~/.bashrc &&
+    /usr/sap/{{ hana_sid }}/HDB{{ hana_instance_number }}/exe/hdbnsutil
+    -sr_register --remoteHost={{ int_var_primary_hostname }} --remoteInstance={{ hana_instance_number }}
+    --replicationMode={{ hsr_replication_mode }}
+    --operationMode={{ hsr_operation_mode }} --name={{ int_var_secondary_site }}
+  become: true
+  become_user: "{{ hana_sid | lower }}adm"
+  when:
+    - not int_var_node_is_primary
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+
+- name: Start HANA on secondary node
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StartWait 600 5
+  when:
+    - not int_var_node_is_primary
+    - not int_fact_hsr_configured
+    - not ansible_check_mode
+
+- name: Set HANA System Replication configured fact
+  ansible.builtin.set_fact:
+    int_fact_hsr_configured: true
+  when: not ansible_check_mode

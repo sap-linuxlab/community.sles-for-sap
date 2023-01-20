@@ -1,0 +1,3 @@
+# Path to the hdbsql binary based on SID and instance number
+int_var_hdbsql_path: "/usr/sap/{{ hana_sid }}/HDB{{ hana_instance_number }}/exe/hdbsql"
+int_var_hdbsql_args: "-i {{ hana_instance_number }} -u system -d systemdb -p '{{ hana_systemdb_password }}' -quiet"
