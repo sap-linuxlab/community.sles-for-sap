@@ -1,0 +1,74 @@
+---
+- name: Ensure that /root/.ssh exists
+  ansible.builtin.file:
+    path: '/root/.ssh'
+    state: directory
+    owner: 'root'
+    group: 'root'
+    mode: '0700'
+  when:
+    - int_fact_ssh_required
+    - not ansible_check_mode
+
+- name: Generate public/private keys
+  community.crypto.openssh_keypair:
+    group: 'root'
+    owner: 'root'
+    mode: '0600'
+    path: '/root/.ssh/id_rsa'
+    type: rsa
+    size: 4096
+  register: ssh_keys
+  when:
+    - int_fact_ssh_required
+    - not ansible_check_mode
+
+- name: Add public key to authorized_keys on all hosts
+  ansible.builtin.lineinfile:
+    path: '~/root/.ssh/authorized_keys'
+    line: "{{ hostvars[item].ssh_keys.public_key }}"
+    create: true
+    mode: '0600'
+  loop: "{{ ansible_play_hosts }}"
+  when:
+    - int_fact_ssh_required
+    - not ansible_check_mode
+
+- name: Apply to Authorised Keys
+  ansible.posix.authorized_key:
+    user: 'root'
+    state: present
+    key: "{{ hostvars[item].ssh_keys.public_key }}"
+  loop: "{{ ansible_play_hosts }}"
+  when:
+    - int_fact_ssh_required
+    - not ansible_check_mode
+
+- name: Slurp ssh daemon public key
+  ansible.builtin.slurp:
+    src: '/etc/ssh/ssh_host_ecdsa_key.pub'
+  register: int_reg_ssh_pub_keys
+  when:
+    - int_fact_ssh_required
+    - not ansible_check_mode
+
+- name: Ensure /root/.ssh/known_hosts contains ssh daemon public key
+  ansible.builtin.known_hosts:
+    path: '/root/.ssh/known_hosts'
+    name: "{{ hostvars[idx]['ansible_hostname'] }}"
+    state: present
+    key: >-
+      {{ hostvars[idx]['ansible_hostname'] }},{{ hostvars[idx]['ansible_default_ipv4']['address'] }}
+      {{ (hostvars[idx].int_reg_ssh_pub_keys.content | b64decode | split(' '))[0] }}
+      {{ (hostvars[idx].int_reg_ssh_pub_keys.content | b64decode | split(' '))[1] }}
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: idx
+  when:
+    - int_fact_ssh_required
+    - not ansible_check_mode
+
+- name: Set ssh required to false
+  ansible.builtin.set_fact:
+    int_fact_ssh_required: false
+  when: not ansible_check_mode

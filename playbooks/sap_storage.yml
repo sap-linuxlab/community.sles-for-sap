@@ -1,0 +1,24 @@
+---
+# This example does not represent a production supported storage configuration
+- name: Use sap_storage role
+  hosts: all
+  remote_user: my_ansible_user
+  become: true
+  vars:
+    sap_storage:
+      usr_sap:
+        label: "usr_sap"
+        devices: ["/dev/disk/azure/scsi1/lun0"]
+        mount_point: "/usr/sap"
+        file_system: "xfs"
+        mount_options: "noatime,nodiratime,logbsize=256k"
+      hana:
+        label: "hana"
+        devices: ["/dev/disk/azure/scsi1/lun1", "/dev/disk/azure/scsi1/lun2"]
+        mount_point: "/hana"
+        file_system: "xfs"
+        stripe_size: "32"
+        file_system_options: "-b size=1024"
+        mount_options: "noatime,nodiratime,logbsize=256k"
+  roles:
+    - { role: ../roles/sap_storage }

@@ -1,0 +1,7 @@
+---
+- name: Use ssh-key-role
+  hosts: all
+  remote_user: my_ansible_user
+  become: true
+  roles:
+    - { role: ../roles/ssh-key-prep }

@@ -1,0 +1,12 @@
+---
+- name: Run Pre-Checks
+  ansible.builtin.include_tasks:
+    ./pre-checks.yml
+
+- name: Run Tasks
+  ansible.builtin.include_tasks:
+    ./tasks.yml
+
+- name: Run Post-Checks
+  ansible.builtin.include_tasks:
+    ./post-checks.yml

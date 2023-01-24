@@ -1,10 +1,9 @@
 ---
 - name: Use sles_register role
   hosts: all
-  remote_user: sstringer
+  remote_user: my_ansible_user
   become: true
   vars:
-    reg_code: << MY_REG_CODE >>
-    use_suseconnect: true
+    reg_code: 'This-is-not-a-valid-reg-code'
   roles:
     - { role: ../roles/sles_register }

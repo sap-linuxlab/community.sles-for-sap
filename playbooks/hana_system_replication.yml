@@ -1,12 +1,12 @@
 ---
 - name: Use sles_register role
   hosts: all
-  remote_user: sstringer
+  remote_user: my_ansible_user
   become: true
   vars:
     hana_sid: 'SU1'
     hana_instance_number: '00'
-    hana_systemdb_password: 'AnExamplePassw0rd'
+    hana_systemdb_password: 'Example_poor_passwo0rd'
     hana_system_replication_nodes:
       - hostname: 'hana01'
         ip_address: '10.10.10.10'

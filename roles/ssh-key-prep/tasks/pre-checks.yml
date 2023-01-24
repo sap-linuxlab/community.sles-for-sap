@@ -1,0 +1,76 @@
+---
+# Check user exists
+- name: Gather available local users
+  ansible.builtin.getent:
+    database: passwd
+    key: 'root'
+  failed_when: false
+
+- name: Assert user required user exists
+  ansible.builtin.assert:
+    that:
+      - getent_passwd is defined
+      - "'root' in getent_passwd.keys()"
+    fail_msg: >-
+      The user specified in the variable 'system_user' ('root') does
+      not exist on this system. Ensure that the user exists before running the
+      role.
+    success_msg: >-
+      The user 'root' was found on this system.
+
+- name: Check that all hosts can resolve and connect to ssh port on all hosts
+  ansible.builtin.wait_for:
+    host: "{{ item }}"
+    port: "{{ int_var_ssh_port }}"
+    delay: 1
+  retries: 3
+  delay: 1
+  loop: "{{ ansible_play_hosts }}"
+  register: "int_reg_check_ssh"
+  check_mode: false
+
+- name: Assert that all hosts can resolve and connect to the ssh port of all hosts
+  ansible.builtin.assert:
+    that: >-
+      not {{ item.failed }}
+    fail_msg: >-
+      {{ inventory_hostname }} cannot connect to the ssh port of
+      {{ item.item }}. This may because the port is not open or that
+      {{ inventory_hostname }} cannot resolve {{ item.item }}. Ensure that ssh
+      is listening on port {{ int_var_ssh_port }} and that all hosts can resolve
+      the hostnames of all other hosts in the play.
+    success_msg: >-
+      {{ inventory_hostname }} can reach port {{ int_var_ssh_port }} on
+      {{ item.item }}.
+  loop: "{{ int_reg_check_ssh.results }}"
+
+- name: Check if nodes can perform password-free ssh logins
+  ansible.builtin.command: >-
+    ssh {{ item }} hostname
+  register: int_reg_pre_ssh_command
+  loop: "{{ ansible_play_hosts }}"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Assert that all hosts can perform password-free ssh logins
+  ansible.builtin.set_fact:
+    int_fact_ssh_required: true
+  loop: "{{ int_reg_pre_ssh_command.results }}"
+  when: item.rc != 0
+
+- name: Set action required fact
+  ansible.builtin.set_fact:
+    int_fact_ssh_required: false
+  when: int_fact_ssh_required is not defined
+
+- name: Set action fact
+  ansible.builtin.set_fact:
+    int_fact_action: >-
+      {% if int_fact_ssh_required %}ssh key generation and sharing required
+      {% else %}ssh and key sharing appears to have been previously completed, no action required
+      {% endif %}
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: "{{ int_fact_action | trim }}"

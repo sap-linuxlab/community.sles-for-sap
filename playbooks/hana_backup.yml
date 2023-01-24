@@ -1,0 +1,23 @@
+---
+- name: Use hana_backup role
+  hosts: all
+  remote_user: my_ansible_user
+  become: true
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hana_systemdb_password: 'Example_poor_passwo0rd'
+
+  tasks:
+    - name: Make backup directory
+      ansible.builtin.file:
+        state: directory
+        path: "{{ backup_path }}"
+        mode: '0700'
+        owner: "{{ hana_sid | lower }}adm"
+        group: sapsys
+      when: backup_path is defined
+
+    - name: Call roll
+      ansible.builtin.include_role:
+        name: ../roles/hana_backup
