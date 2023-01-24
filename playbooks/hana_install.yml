@@ -1,0 +1,14 @@
+---
+- name: Use hana_install role
+  hosts: all
+  remote_user: my_ansible_user
+  become: true
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hana_master_password: 'Example_poor_passwo0rd'
+    sapcar_binary: '/hana/software/SAPCAR.EXE'
+    hana_sar: '/hana/software/IMDB_SERVER20_062_0-80002031.SAR'
+    hana_unpack_directory: '/hana/software/unpacked'
+  roles:
+    - { role: ../roles/hana_install }

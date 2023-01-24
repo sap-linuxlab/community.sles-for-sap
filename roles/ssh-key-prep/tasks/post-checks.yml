@@ -1,0 +1,24 @@
+---
+- name: Ensure all nodes can perform password-free ssh logins
+  ansible.builtin.command: >-
+    ssh {{ item }} hostname
+  register: int_reg_post_ssh_command
+  loop: "{{ ansible_play_hosts }}"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: not int_fact_ssh_required
+
+- name: Assert that all hosts can perform password-free ssh logins
+  ansible.builtin.assert:
+    that: >-
+      {{ item.rc }} == 0
+    fail_msg: >-
+      {{ inventory_hostname }} was not not able to create an ssh connection to
+      {{ item.item }}. This suggests that the role was not successful.
+    success_msg: >-
+      {{ inventory_hostname }} was not able to create an ssh connection to
+      {{ item.item }}.
+  loop: "{{ int_reg_post_ssh_command.results }}"
+  when:
+    - not int_fact_ssh_required
