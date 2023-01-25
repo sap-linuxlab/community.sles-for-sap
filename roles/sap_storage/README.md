@@ -50,7 +50,7 @@ sap_storage_config:
   hana:
     label: "hana"
     devices: ["/dev/disk/azure/scsi1/lun1","/dev/disk/azure/scsi1/lun2","/dev/disk/azure/scsi1/lun3"]
-    mount_point: "hana"
+    mount_point: "/hana"
     file_system: "xfs"
     stripe_size: "32"
     mount_options: "noatime,nodiratime,logbsize=256k"
