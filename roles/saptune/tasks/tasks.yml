@@ -18,7 +18,6 @@
   ansible.builtin.command: saptune_check
   changed_when: false
 
-
 - name: Ensure that unwanted solution is reverted
   ansible.builtin.command: "saptune solution revert {{ int_fact_saptune_solution_configured }}"
   when:

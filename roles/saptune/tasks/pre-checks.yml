@@ -41,12 +41,6 @@
 # section easier to maintain
 - name: Collect active solution
   ansible.builtin.command: saptune solution enabled
-  register: int_reg_saptune_status
-  changed_when: false
-  check_mode: false
-
-- name: Collect active solution
-  ansible.builtin.command: saptune solution enabled
   register: int_reg_saptune_active_solution
   changed_when: false
   check_mode: false
