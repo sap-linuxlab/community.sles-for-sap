@@ -1,0 +1,139 @@
+---
+- name: Check for SAPHanaSR hook
+  community.general.ini_file:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    exclusive: true
+    create: false
+  check_mode: true
+  register: int_reg_pre_global_saphanasr_hook
+  loop: "{{ int_var_global_saphanasr_hook }}"
+
+- name: Set SAPHanaSR change fact
+  ansible.builtin.set_fact:
+    int_fact_saphanasr_hook_change: "{{
+      int_reg_pre_global_saphanasr_hook.results |
+      community.general.json_query(q1) |
+      first |
+      default(false)
+      }}"
+  vars:
+    q1: "[?changed].changed"
+
+- name: Check for susTkOver hook
+  community.general.ini_file:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    exclusive: true
+    create: false
+  check_mode: true
+  register: int_reg_pre_global_sustkover_hook
+  loop: "{{ int_var_global_sustkover_hook }}"
+  when: int_reg_sustkover_hook_file.stat.exists
+
+- name: Set susTkOver change fact
+  ansible.builtin.set_fact:
+    int_fact_sustkover_hook_change: "{{
+      int_reg_pre_global_sustkover_hook.results |
+      community.general.json_query(q1) |
+      first |
+      default(false)
+      }}"
+  vars:
+    q1: "[?changed].changed"
+  when: int_reg_sustkover_hook_file.stat.exists
+
+- name: Check for susChkSrv hook
+  community.general.ini_file:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    exclusive: true
+    create: false
+  check_mode: true
+  register: int_reg_pre_global_suschksrv_hook
+  loop: "{{ int_var_global_suschksrv_hook}}"
+  when: int_reg_suschksrv_hook_file.stat.exists
+
+- name: Set susChkSrv change fact
+  ansible.builtin.set_fact:
+    int_fact_suschksrv_hook_change: "{{
+      int_reg_pre_global_suschksrv_hook.results |
+      community.general.json_query(q1) |
+      first |
+      default(false)
+      }}"
+  vars:
+    q1: "[?changed].changed"
+
+
+- name: Debugit
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop:
+    - "{{ int_fact_saphanasr_hook_change }}"
+    - "{{ int_fact_sustkover_hook_change }}"
+    - "{{ int_fact_suschksrv_hook_change }}"
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: >-
+      {% if int_fact_saphanasr_hook_change
+      or int_fact_sustkover_hook_change
+      or int_fact_suschksrv_hook_change%}One or more hooks requires installation{%
+      else%}No action required{% endif %}
+
+- name: Shutdown HANA
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
+  when:
+    int_fact_saphanasr_hook_change
+    or int_fact_sustkover_hook_change
+    or int_fact_suschksrv_hook_change
+
+- name: Ensure SAPHanaSR hook is present in global.ini
+  community.general.ini_file:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    exclusive: true
+    create: false
+  register: int_reg_pre_global_ini
+  loop: "{{ int_var_global_saphanasr_hook }}"
+  when: int_fact_saphanasr_hook_change
+
+- name: Ensure susTkOver hook is present in global.ini
+  community.general.ini_file:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    exclusive: true
+    create: false
+  register: int_reg_pre_global_ini
+  loop: "{{ int_var_global_sustkover_hook }}"
+  when: int_fact_sustkover_hook_change
+
+- name: Ensure susChkSrv hook is present in global.ini
+  community.general.ini_file:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    exclusive: true
+    create: false
+  register: int_reg_pre_global_ini
+  loop: "{{ int_var_global_suschksrv_hook }}"
+  when: int_fact_suschksrv_hook_change

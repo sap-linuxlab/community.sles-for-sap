@@ -1,0 +1,68 @@
+---
+- name: Include hana sid and instance variables
+  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+  check_mode: false
+
+- name: Assert that HanaSR is installed
+  ansible.builtin.assert:
+    that: "'{{ item }}' in ansible_facts.packages"
+    fail_msg: >-
+      The package '{{ item }}' must be installed to use this role. Install
+      '{{ item }}' prior to running this role.
+    success_msg: >-
+      The package '{{ item }}' is installed
+  loop: "{{ int_var_required_packages }}"
+  check_mode: false
+
+- name: Check for existence of required files
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: int_var_required_files_stat
+  changed_when: false
+  check_mode: false
+  loop: "{{ int_var_required_files }}"
+
+- name: Assert that required files are present
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isreg
+    fail_msg: >-
+      The required file {{ item.item }} was not found. This file should be
+      part of the HanaSR package which is installed. This suggests that there is
+      a problem with the the HanaSR package. Reinstalling the package may fix
+      the issue.
+    success_msg: >-
+      The file {{ item.item }} was found.
+  loop: "{{ int_var_required_files_stat.results }}"
+
+- name: Check for susTkOver hook file
+  ansible.builtin.stat:
+    path: "{{ int_var_sustkover_hook }}"
+  register: int_reg_sustkover_hook_file
+  changed_when: false
+
+- name: Check for susChkSrv hook file
+  ansible.builtin.stat:
+    path: "{{ int_var_suschksrv_hook }}"
+  register: int_reg_suschksrv_hook_file
+  changed_when: false
+
+- name: Check for HookHelper file
+  ansible.builtin.stat:
+    path: "{{ int_var_hook_helper }}"
+
+- name: Debug
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop:
+    - "{{ int_reg_sustkover_hook_file.stat.exists }}"
+    - "{{ int_reg_suschksrv_hook_file.stat.exists }}"
+
+# Required action
