@@ -20,6 +20,8 @@ The role performs the following tasks:
 
 * hana_sid - the three character 'System ID' of the HANA installation.
 * hana_instance_number - the two digit instance ID of the HANA installation.
+* primary - the host in the play that is the primary SAP HANA System Replication
+  server.
 
 An example playbook is available in the [playbooks directory](../../playbooks)
 of the repository.

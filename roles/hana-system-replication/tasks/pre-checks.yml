@@ -11,6 +11,10 @@
 - name: Include hdbsql checks
   ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
 
+- name: Gather package facts
+  ansible.builtin.package_facts:
+  check_mode: false
+
 - name: Ensure required variables are defined
   ansible.builtin.assert:
     that:
@@ -21,10 +25,7 @@
       define and populate this variable for this role to function.
     success_msg: >-
       The {{ item }} variable is correctly defined and is not empty.
-  loop:
-    - hana_sid
-    - hana_instance_number
-    - primary_systemdb_password
+  loop: "{{ int_var_required_vars }}"
     # Add more as we go
 
 - name: Ensure that hana_system_replication_nodes is defined and populated
@@ -469,7 +470,7 @@
       process.
     success_msg: >-
       The desired and configured replication mode match
-      ({{hsr_replication_mode}}).
+      ({{ hsr_replication_mode }}).
   vars:
     q1: "[?role=='secondary' ].site"
   when:

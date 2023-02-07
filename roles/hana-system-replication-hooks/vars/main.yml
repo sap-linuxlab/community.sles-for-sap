@@ -5,6 +5,11 @@ int_var_required_packages:
 int_var_required_files:
   - '/usr/share/SAPHanaSR/SAPHanaSR.py'
 
+int_var_required_vars:
+  - hana_system_replication_primary
+  - hana_system_replication_secondary
+
+
 int_var_saphanasr_hook: '/usr/share/SAPHanaSR/SAPHanaSR.py'
 int_var_sustkover_hook: '/usr/share/SAPHanaSR/susTkOver.py'
 int_var_suschksrv_hook: '/usr/share/SAPHanaSR/susChkSrv.py'

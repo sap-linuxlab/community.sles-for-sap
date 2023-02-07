@@ -137,3 +137,6 @@
   register: int_reg_pre_global_ini
   loop: "{{ int_var_global_suschksrv_hook }}"
   when: int_fact_suschksrv_hook_change
+
+# - name: Ensure that the /etc/sudoers.d/SAPHanaSR is populated correctly
+# ansible.builtin.template:
