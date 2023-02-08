@@ -92,6 +92,7 @@
 - name: Check for HookHelper file
   ansible.builtin.stat:
     path: "{{ int_var_hook_helper }}"
+  changed_when: false
 
 
 # Check system replication configuration
@@ -172,13 +173,21 @@
       }}"
   when: int_var_node_is_primary
 
-- name: Get configured HANA System Replication get_system_replication_status
+- name: Get configured HANA System Replication status
   ansible.builtin.set_fact:
     int_fact_hsr_status: "{{
       int_reg_pre_hsr_config.list |
       map(attribute='REPLICATION_STATUS') |
       first
       }}"
+  when: int_var_node_is_primary
+
+- name: Get secondary HANA System Replication status
+  ansible.builtin.set_fact:
+    int_fact_hsr_secondary_status:
+      "{% if int_reg_pre_hsr_config.list |
+      map(attribute='SECONDARY_ACTIVE_STATUS') |
+      first == 'YES' %}True{% else %}False{% endif %}"
   when: int_var_node_is_primary
 
 - name: Assert that configured primary HANA system replication host matches configuration
@@ -218,20 +227,24 @@
       The system replication status is {{ int_fact_hsr_status }}. This role
       requires HANA System Replication to be working correctly before it can
       begin. Therefore, the status of HANA System Replication should be
-      {{ int_fact_hsr_status }}. Check the HANA System Replication configuration
+      'ACTIVE'. Check the HANA System Replication configuration
       and ensure that both nodes/sites are up and running.
     success_msg: >-
       The system replication status is {{ int_fact_hsr_status }}
   when: int_var_node_is_primary
   check_mode: false
 
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ int_fact_primary_hsr_host }}"
+- name: Assert that secondary HANA System Replication status is active
+  ansible.builtin.assert:
+    that: int_fact_hsr_secondary_status
+    fail_msg: >-
+      The system replication status of the secondary node  is
+      '{{ int_fact_hsr_secondary_status }}'. This role requires HANA System
+      Replication to be working correctly on both nodes before it can
+      begin. Therefore, the status of HANA System Replication should be
+      'YES'. Check the HANA System Replication configuration
+      and ensure that both nodes/sites are up and running.
+    success_msg: >-
+      The system replication status is '{{ int_fact_hsr_secondary_status }}'.
   when: int_var_node_is_primary
 
-- name: Just fail!
-  ansible.builtin.fail:
-    msg: All aboard the good ship SS Faily!
-
-# Required action

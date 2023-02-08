@@ -1,4 +1,21 @@
 ---
+# This task list is a little complex and works differently to the others in this
+# collection so far. Here's a outline of the problem and how it is overcome.
+# In order to install the hooks to the HANA global.ini file, the HANA DB needs
+# to be shutdown. The role should be able to run and make no changes if non need
+# to be made, therefore, HANA should only be shutdown if it is really required.
+# Therefore, the ini_file module is first run in check_mode for each hook, to
+# check if any changes need to be made. The ini_file module will return the
+# value 'OK' in the msg key if no changes need to be made. Therefore, this value
+# is used to determine if a shutting HANA down is necessary.
+
+# The check_mode version of 'ini_file' registers the value of the results. The
+# following 'set_fact' module uses 'json_query' to find the number of msg output
+# that are not 'OK'. If more than one is found, then a change is required.
+
+# This technique is repeated for each hook found. If any change is required,
+# HANA will be stopped, the required hooks updated and HANA will be restarted
+
 - name: Check for SAPHanaSR hook
   community.general.ini_file:
     path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
@@ -9,6 +26,7 @@
     exclusive: true
     create: false
   check_mode: true
+  changed_when: false
   register: int_reg_pre_global_saphanasr_hook
   loop: "{{ int_var_global_saphanasr_hook }}"
 
@@ -17,11 +35,11 @@
     int_fact_saphanasr_hook_change: "{{
       int_reg_pre_global_saphanasr_hook.results |
       community.general.json_query(q1) |
-      first |
-      default(false)
+      length
       }}"
   vars:
-    q1: "[?changed].changed"
+    q1: "[?msg != 'OK'].msg"
+
 
 - name: Check for susTkOver hook
   community.general.ini_file:
@@ -33,6 +51,7 @@
     exclusive: true
     create: false
   check_mode: true
+  changed_when: false
   register: int_reg_pre_global_sustkover_hook
   loop: "{{ int_var_global_sustkover_hook }}"
   when: int_reg_sustkover_hook_file.stat.exists
@@ -42,12 +61,16 @@
     int_fact_sustkover_hook_change: "{{
       int_reg_pre_global_sustkover_hook.results |
       community.general.json_query(q1) |
-      first |
-      default(false)
+      length
       }}"
   vars:
-    q1: "[?changed].changed"
+    q1: "[?msg != 'OK'].msg"
   when: int_reg_sustkover_hook_file.stat.exists
+
+- name: Set susTkOver change fact default
+  ansible.builtin.set_fact:
+    int_fact_sustkover_hook_change: 0
+  when: not int_reg_sustkover_hook_file.stat.exists
 
 - name: Check for susChkSrv hook
   community.general.ini_file:
@@ -59,6 +82,7 @@
     exclusive: true
     create: false
   check_mode: true
+  changed_when: false
   register: int_reg_pre_global_suschksrv_hook
   loop: "{{ int_var_global_suschksrv_hook}}"
   when: int_reg_suschksrv_hook_file.stat.exists
@@ -68,36 +92,35 @@
     int_fact_suschksrv_hook_change: "{{
       int_reg_pre_global_suschksrv_hook.results |
       community.general.json_query(q1) |
-      first |
-      default(false)
+      length
       }}"
   vars:
-    q1: "[?changed].changed"
+    q1: "[?msg != 'OK'].msg"
+  when: int_reg_suschksrv_hook_file.stat.exists
 
-
-- name: Debugit
-  ansible.builtin.debug:
-    msg: "{{ item }}"
-  loop:
-    - "{{ int_fact_saphanasr_hook_change }}"
-    - "{{ int_fact_sustkover_hook_change }}"
-    - "{{ int_fact_suschksrv_hook_change }}"
+- name: Set susChkSrv change fact default
+  ansible.builtin.set_fact:
+    int_fact_suschksrv_hook_change: 0
+  when: not int_reg_suschksrv_hook_file.stat.exists
 
 - name: Print required action
   ansible.builtin.debug:
     msg: >-
-      {% if int_fact_saphanasr_hook_change
-      or int_fact_sustkover_hook_change
-      or int_fact_suschksrv_hook_change%}One or more hooks requires installation{%
-      else%}No action required{% endif %}
+      {% if int_fact_saphanasr_hook_change | int > 0
+      or
+      int_fact_sustkover_hook_change | int > 0
+      or
+      int_fact_suschksrv_hook_change | int > 0
+      %}One or more hooks need to be installed{%
+      else%}All available hooks are already configured{% endif%}
 
 - name: Shutdown HANA
   ansible.builtin.command:
     /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
   when:
-    int_fact_saphanasr_hook_change
-    or int_fact_sustkover_hook_change
-    or int_fact_suschksrv_hook_change
+    int_fact_saphanasr_hook_change | int > 0
+    or int_fact_sustkover_hook_change | int > 0
+    or int_fact_suschksrv_hook_change | int > 0
 
 - name: Ensure SAPHanaSR hook is present in global.ini
   community.general.ini_file:
@@ -110,7 +133,7 @@
     create: false
   register: int_reg_pre_global_ini
   loop: "{{ int_var_global_saphanasr_hook }}"
-  when: int_fact_saphanasr_hook_change
+  when: int_fact_saphanasr_hook_change | int > 0
 
 - name: Ensure susTkOver hook is present in global.ini
   community.general.ini_file:
@@ -123,7 +146,7 @@
     create: false
   register: int_reg_pre_global_ini
   loop: "{{ int_var_global_sustkover_hook }}"
-  when: int_fact_sustkover_hook_change
+  when: int_fact_sustkover_hook_change | int > 0
 
 - name: Ensure susChkSrv hook is present in global.ini
   community.general.ini_file:
@@ -136,7 +159,15 @@
     create: false
   register: int_reg_pre_global_ini
   loop: "{{ int_var_global_suschksrv_hook }}"
-  when: int_fact_suschksrv_hook_change
+  when: int_fact_suschksrv_hook_change | int > 0
 
 # - name: Ensure that the /etc/sudoers.d/SAPHanaSR is populated correctly
 # ansible.builtin.template:
+
+- name: Start HANA
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StartWait 600 5
+  when:
+    int_fact_saphanasr_hook_change | int > 0
+    or int_fact_sustkover_hook_change | int > 0
+    or int_fact_suschksrv_hook_change | int > 0
