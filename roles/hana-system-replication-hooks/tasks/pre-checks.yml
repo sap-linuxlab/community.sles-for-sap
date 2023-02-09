@@ -92,6 +92,7 @@
 - name: Check for HookHelper file
   ansible.builtin.stat:
     path: "{{ int_var_hook_helper }}"
+  register: int_reg_hook_helper_file
   changed_when: false
 
 
@@ -190,6 +191,34 @@
       first == 'YES' %}True{% else %}False{% endif %}"
   when: int_var_node_is_primary
 
+- name: Get primary site name
+  ansible.builtin.set_fact:
+    int_var_primary_site: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='SITE_NAME') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Get secondary site name
+  ansible.builtin.set_fact:
+    int_var_secondary_site: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='SECONDARY_SITE_NAME') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Copy primary site name fact to secondary
+  ansible.builtin.set_fact:
+    int_var_primary_site: "{{ hostvars[hana_system_replication_primary].int_var_primary_site }}"
+  when: not int_var_node_is_primary
+
+- name: Copy secondary site name fact to secondary
+  ansible.builtin.set_fact:
+    int_var_secondary_site: "{{ hostvars[hana_system_replication_secondary].int_var_primary_site }}"
+  when: not int_var_node_is_primary
+
 - name: Assert that configured primary HANA system replication host matches configuration
   ansible.builtin.assert:
     that: int_fact_primary_hsr_host == hana_system_replication_primary
@@ -247,4 +276,3 @@
     success_msg: >-
       The system replication status is '{{ int_fact_hsr_secondary_status }}'.
   when: int_var_node_is_primary
-

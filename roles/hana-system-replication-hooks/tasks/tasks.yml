@@ -103,24 +103,29 @@
     int_fact_suschksrv_hook_change: 0
   when: not int_reg_suschksrv_hook_file.stat.exists
 
-- name: Print required action
-  ansible.builtin.debug:
-    msg: >-
+- name: Set configuration needed fact
+  ansible.builtin.set_fact:
+    int_fact_configuration_needed: >-
       {% if int_fact_saphanasr_hook_change | int > 0
       or
       int_fact_sustkover_hook_change | int > 0
       or
       int_fact_suschksrv_hook_change | int > 0
-      %}One or more hooks need to be installed{%
-      else%}All available hooks are already configured{% endif%}
+      %}true{%
+      else%}false{% endif%}
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: >-
+      {% if int_fact_configuration_needed == true
+      %}One or more hooks needed to be installed, HANA will be restarted{%
+      else %}System Replication hooks are already installed, HANA will not be
+      restarted{% endif %}
 
 - name: Shutdown HANA
   ansible.builtin.command:
     /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
-  when:
-    int_fact_saphanasr_hook_change | int > 0
-    or int_fact_sustkover_hook_change | int > 0
-    or int_fact_suschksrv_hook_change | int > 0
+  when: int_fact_configuration_needed
 
 - name: Ensure SAPHanaSR hook is present in global.ini
   community.general.ini_file:
@@ -161,13 +166,16 @@
   loop: "{{ int_var_global_suschksrv_hook }}"
   when: int_fact_suschksrv_hook_change | int > 0
 
-# - name: Ensure that the /etc/sudoers.d/SAPHanaSR is populated correctly
-# ansible.builtin.template:
+- name: Ensure hooks sudo file is configured
+  ansible.builtin.template:
+    src: templates/sudoers.j2
+    dest: /etc/sudoers.d/saphanasr
+    owner: root
+    group: root
+    mode: '0660'
+    validate: /usr/sbin/visudo -cf %s
 
 - name: Start HANA
   ansible.builtin.command:
     /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StartWait 600 5
-  when:
-    int_fact_saphanasr_hook_change | int > 0
-    or int_fact_sustkover_hook_change | int > 0
-    or int_fact_suschksrv_hook_change | int > 0
+  when: int_fact_configuration_needed

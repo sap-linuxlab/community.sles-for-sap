@@ -1,1 +1,206 @@
 ---
+- name: Set random query file paths
+  ansible.builtin.set_fact:
+    int_fact_post_sys_rep_general_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+    int_fact_post_sys_rep_general_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+- name: Get HANA System Replication configuration
+  when:
+    - int_var_node_is_primary
+  block:
+    # As the file created here is temporary, doesn't change the configuration
+    # of the target system and will be deleted, this and other file operations
+    # are not considered to make no changes
+    - name: Copy HANA System Replication query to primary
+      ansible.builtin.copy:
+        src: 'files/get_system_replication_status.sql'
+        dest: "{{ int_fact_post_sys_rep_general_query_file }}"
+        owner: 'root'
+        group: 'root'
+        mode: '0600'
+      changed_when: false
+      # Always run, even in check mode
+      check_mode: false
+
+    # As above, this is a SELECT query, and therefore doesn't change the
+    # database so it considered as a none changing task
+    - name: Get SAP HANA System Configuration Information
+      ansible.builtin.command: >-
+        {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }}
+        -I {{ int_fact_post_sys_rep_general_query_file }}
+        -o {{ int_fact_post_sys_rep_general_result_file }}
+      changed_when: false
+      check_mode: false
+
+    - name: Read SAP HANA System Replication configuration
+      community.general.read_csv:
+        path: "{{ int_fact_post_sys_rep_general_result_file }}"
+      register: int_reg_pre_hsr_config
+      check_mode: false
+
+  always:
+    # Blocks don't work with loops, so each file has to be deleted individually
+    # but using blocks and the ensures that temporary files are always deleted
+    # even if the tasks fail
+    - name: Remove temporary query file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_sys_rep_general_query_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+    - name: Remove temporary result file
+      ansible.builtin.file:
+        path: "{{ int_fact_post_sys_rep_general_result_file }}"
+        state: absent
+      changed_when: false
+      check_mode: false
+
+- name: Debug
+  ansible.builtin.debug:
+    msg: "{{ int_reg_pre_hsr_config }}"
+
+- name: Get configured HANA system replication master
+  ansible.builtin.set_fact:
+    int_fact_primary_hsr_host: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='HOST') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Get configured HANA system replication secondary
+  ansible.builtin.set_fact:
+    int_fact_secondary_hsr_host: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='SECONDARY_HOST') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Get configured HANA System Replication status
+  ansible.builtin.set_fact:
+    int_fact_hsr_status: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='REPLICATION_STATUS') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Get secondary HANA System Replication status
+  ansible.builtin.set_fact:
+    int_fact_hsr_secondary_status:
+      "{% if int_reg_pre_hsr_config.list |
+      map(attribute='SECONDARY_ACTIVE_STATUS') |
+      first == 'YES' %}True{% else %}False{% endif %}"
+  when: int_var_node_is_primary
+
+- name: Get primary site name
+  ansible.builtin.set_fact:
+    int_var_primary_site: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='SITE_NAME') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Get secondary site name
+  ansible.builtin.set_fact:
+    int_var_secondary_site: "{{
+      int_reg_pre_hsr_config.list |
+      map(attribute='SECONDARY_SITE_NAME') |
+      first
+      }}"
+  when: int_var_node_is_primary
+
+- name: Assert that configured primary HANA system replication host matches configuration
+  ansible.builtin.assert:
+    that: int_fact_primary_hsr_host == hana_system_replication_primary
+    fail_msg: >-
+      The configured primary HANA System Replication host does not match the
+      expectation. The configured primary HANA system replication host appears
+      to be {{ int_fact_primary_hsr_host }}, which does not match the expected
+      value set in hana_system_replication_primary
+      {{ hana_system_replication_primary }}.
+    success_msg: >-
+      The configured and expected primary HANA system replication host match
+      ({{ int_fact_primary_hsr_host }}).
+  when: int_var_node_is_primary
+  check_mode: false
+
+- name: Assert that configured secondary HANA system replication host matches configuration
+  ansible.builtin.assert:
+    that: hana_system_replication_secondary == int_fact_secondary_hsr_host
+    fail_msg: >-
+      The configured primary HANA System Replication host does not match the
+      expectation. The configured primary HANA system replication host appears
+      to be {{ int_fact_secondary_hsr_host }}, which does not match the expected
+      value set in hana_system_replication_primary
+      {{ hana_system_replication_secondary }}.
+    success_msg: >-
+      The configured and expected primary HANA system replication host match
+      ({{ int_fact_secondary_hsr_host }}).
+  when: int_var_node_is_primary
+  check_mode: false
+
+- name: Assert that HANA System Replication status is active
+  ansible.builtin.assert:
+    that: int_fact_hsr_status == 'ACTIVE'
+    fail_msg: >-
+      The system replication status is {{ int_fact_hsr_status }}. This role
+      requires HANA System Replication to be working correctly before it can
+      begin. Therefore, the status of HANA System Replication should be
+      'ACTIVE'. Check the HANA System Replication configuration
+      and ensure that both nodes/sites are up and running.
+    success_msg: >-
+      The system replication status is {{ int_fact_hsr_status }}
+  when: int_var_node_is_primary
+  check_mode: false
+
+- name: Assert that secondary HANA System Replication status is active
+  ansible.builtin.assert:
+    that: int_fact_hsr_secondary_status
+    fail_msg: >-
+      The system replication status of the secondary node  is
+      '{{ int_fact_hsr_secondary_status }}'. This role requires HANA System
+      Replication to be working correctly on both nodes before it can
+      begin. Therefore, the status of HANA System Replication should be
+      'YES'. Check the HANA System Replication configuration
+      and ensure that both nodes/sites are up and running.
+    success_msg: >-
+      The system replication status is '{{ int_fact_hsr_secondary_status }}'.
+  when: int_var_node_is_primary
+
+# What follows is an attempt to check that the hook/s was/were installed OK
+# https://documentation.suse.com/sbp/all/html/SLES4SAP-hana-sr-guide-PerfOpt-15/index.html#id-testing-the-hook-integration
+
+# Assume we need the latest nameserver file
+
+- name: Find nameserver files
+  ansible.builtin.find:
+    paths: /usr/sap/SU1/HDB00/{{ inventory_hostname }}/trace
+    use_regex: true
+    patterns: 'nameserver_{{ inventory_hostname }}.[0-9]{5}.[0-9]{3}.trc'
+    # nameserver_sstringer-saptune-ansilble-vm-02.[0-9]{3,6}.[0-9]{1-4}.trc
+  register: int_fact_found_nameserver_trace_files
+  tags: regex
+
+- name: Show found files
+  ansible.builtin.debug:
+    msg: "{{ int_fact_found_nameserver_trace_files.files }}"
+  tags: regex
+
+- name: Set fact for latest filename
+  ansible.builtin.set_fact:
+    int_fact_latest_nameserver_file: "{{
+      int_fact_found_nameserver_trace_files.files |
+      community.general.json_query(q1)
+      }}"
+  vars:
+    - q1: "max_by([], &mtime).path"
+  tags: regex
+
+- name: Debug
+  ansible.builtin.debug:
+    msg: "{{ int_fact_latest_nameserver_file }}"
+  tags: regex
