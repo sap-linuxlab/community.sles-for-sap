@@ -173,9 +173,11 @@
 
 # What follows is an attempt to check that the hook/s was/were installed OK
 # https://documentation.suse.com/sbp/all/html/SLES4SAP-hana-sr-guide-PerfOpt-15/index.html#id-testing-the-hook-integration
+# The check should only be done if the HANA system has been reconfigured in the
+# play, otherwise, we'll be dealing with old data and that could give misleading
+# answers.
 
 # Assume we need the latest nameserver file
-
 - name: Find nameserver files
   ansible.builtin.find:
     paths: /usr/sap/SU1/HDB00/{{ inventory_hostname }}/trace
@@ -183,13 +185,9 @@
     patterns: 'nameserver_{{ inventory_hostname }}.[0-9]{5}.[0-9]{3}.trc'
     # nameserver_sstringer-saptune-ansilble-vm-02.[0-9]{3,6}.[0-9]{1-4}.trc
   register: int_fact_found_nameserver_trace_files
-  tags: regex
+  when: int_fact_configuration_needed
 
-- name: Show found files
-  ansible.builtin.debug:
-    msg: "{{ int_fact_found_nameserver_trace_files.files }}"
-  tags: regex
-
+# Get the latest file by filename
 - name: Set fact for latest filename
   ansible.builtin.set_fact:
     int_fact_latest_nameserver_file: "{{
@@ -198,9 +196,8 @@
       }}"
   vars:
     - q1: "max_by([], &mtime).path"
-  tags: regex
+  when: int_fact_configuration_needed
 
 - name: Debug
   ansible.builtin.debug:
     msg: "{{ int_fact_latest_nameserver_file }}"
-  tags: regex

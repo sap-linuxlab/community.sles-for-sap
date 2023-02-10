@@ -17,19 +17,19 @@ int_var_hook_helper: '/usr/sbin/SAPHanaSR-hookHelper'
 
 int_var_global_saphanasr_hook:
   - { 'section': 'ha_dr_provider_SAPHanaSR', 'option': 'provider', 'value': 'SAPHanaSR' }
-  - { 'section': 'ha_dr_provider_SAPHanaSR', 'option': 'path', 'value': '/usr/share/SAPHanaSR' }
+  - { 'section': 'ha_dr_provider_SAPHanaSR', 'option': 'path', 'value': '/usr/share/SAPHanaSR/' }
   - { 'section': 'ha_dr_provider_SAPHanaSR', 'option': 'execution_order', 'value': '1' }
   - { 'section': 'trace', 'option': 'ha_dr_saphanasr', 'value': 'info' }
 
 int_var_global_sustkover_hook:
   - { 'section': 'ha_dr_provider_sustkover', 'option': 'provider', 'value': 'susTkOver' }
-  - { 'section': 'ha_dr_provider_sustkover', 'option': 'path', 'value': '/usr/share/SAPHanaSR' }
+  - { 'section': 'ha_dr_provider_sustkover', 'option': 'path', 'value': '/usr/share/SAPHanaSR/' }
   - { 'section': 'ha_dr_provider_sustkover', 'option': 'execution_order', 'value': '2' }
   - { 'section': 'trace', 'option': 'ha_dr_sustkover = info', 'value': 'info' }
 
 int_var_global_suschksrv_hook:
   - { 'section': 'ha_dr_provider_suschksrv', 'option': 'provider', 'value': 'susChkSrv' }
-  - { 'section': 'ha_dr_provider_suschksrv', 'option': 'path', 'value': '/usr/share/SAPHanaSR' }
+  - { 'section': 'ha_dr_provider_suschksrv', 'option': 'path', 'value': '/usr/share/SAPHanaSR/' }
   - { 'section': 'ha_dr_provider_suschksrv', 'option': 'execution_order', 'value': '3' }
   - { 'section': 'ha_dr_provider_suschksrv', 'option': 'action_on_loss=stop', 'value': 'stop' }
   - { 'section': 'trace', 'option': 'ha_dr_suschksrv = info', 'value': 'info' }
