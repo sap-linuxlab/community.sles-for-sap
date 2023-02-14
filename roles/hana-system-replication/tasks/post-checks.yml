@@ -178,7 +178,6 @@
       first ==
       hsr_replication_mode |
       upper
-    msg: Matches
     fail_msg: >-
       The configured HANA System Replication mode does not match the replication
       mode specified in the Ansible configuration. This indicates that

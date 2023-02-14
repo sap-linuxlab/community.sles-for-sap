@@ -5,6 +5,11 @@ int_var_replication_modes_allowed:
   - 'syncmem'
   - 'async'
 
+int_var_required_vars:
+  - hana_sid
+  - hana_instance_number
+  - primary_systemdb_password
+
 int_var_operation_modes_allowed:
   - 'delta_datashipping'
   - 'logreplay'

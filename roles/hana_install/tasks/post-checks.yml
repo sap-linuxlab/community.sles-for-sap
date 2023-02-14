@@ -15,11 +15,11 @@
       - item.stat.pw_name == '{{ hana_sid | lower }}adm'
       - item.stat.gr_name == 'sapsys'
     fail_msg: >-
-      {{ item.stat.path }} either does not exist, is not a directory, is not
+      {{ item.item }} either does not exist, is not a directory, is not
       owned by {{ hana_sid | lower }}adm or its group is 'sapsys'. This
       indicates that the HANA installation was not completed successfully.
     success_msg: >-
-      The directory {{ item.stat.path }} was found as expected.
+      The directory {{ item.item }} was found as expected.
   loop: "{{ int_reg_hana_post_install_directories.results }}"
   when: int_fact_hana_installed
 

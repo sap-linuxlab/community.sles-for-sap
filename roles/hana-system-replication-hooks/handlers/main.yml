@@ -1,0 +1,8 @@
+---
+- name: Stop HANA
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
+
+- name: Start HANA
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StartWait 600 5

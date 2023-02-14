@@ -1,3 +1,16 @@
+- name: Assert that hana_side and hana_instance_number are defined
+  ansible.builtin.assert:
+    that: "{{ item }} is defined"
+    fail_msg: >-
+      The variable {{ item }} is not defined. Ensure this variable is populated
+      when running this role.
+    success_msg: >-
+      The variable {{ item }} is defined
+  check_mode: false
+  loop:
+    - hana_sid
+    - hana_instance_number
+
 - name: Check hana_sid is compliant
   ansible.builtin.assert:
     that:

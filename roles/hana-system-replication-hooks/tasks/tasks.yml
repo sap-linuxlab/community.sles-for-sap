@@ -1,0 +1,261 @@
+---
+# This task list is a little complex and works differently to the others in this
+# collection so far. Here's a outline of the problem and how it is overcome.
+# In order to install the hooks to the HANA global.ini file, the HANA DB needs
+# to be shutdown. The role should be able to run and make no changes if non
+# needed to be made, therefore, HANA should only be shutdown if it is really
+# required. Therefore, the blockinfile module is first run in check_mode for
+# each hook, to check if any changes need to be made. The blockinfile module
+# will return the value an empty string in the msg key if no changes need to be
+# made. Therefore, this value is used to determine if a shutting HANA down is
+# necessary.
+
+# This technique is repeated for each hook found. If any change is required,
+# HANA will be stopped, the required hooks updated and HANA will be restarted
+
+- name: Check for SAPHanaSR hook
+  ansible.builtin.blockinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    marker_begin: "BEGIN SAPHanaSR hook"
+    marker_end: "END SAPHanaSR hook"
+    block: |
+      [ha_dr_provider_saphanasr]
+      provider = SAPHanaSR
+      path = /usr/share/SAPHanaSR/
+      execution_order = 1
+  check_mode: true
+  changed_when: false
+  register: int_reg_pre_global_saphanasr_hook
+
+- name: Set SAPHanaSR change fact
+  ansible.builtin.set_fact:
+    int_fact_saphanasr_hook_change: >-
+      {% if int_reg_pre_global_saphanasr_hook.msg == '' %}false{%
+      else %}true{%
+      endif %}
+
+- name: Check for susTkOver hook
+  ansible.builtin.blockinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    marker_begin: "BEGIN susTkOver hook"
+    marker_end: "END susTkOver hook"
+    block: |
+      [ha_dr_provider_sustkover]
+      provider = susTkOver
+      path = /usr/share/SAPHanaSR/
+      execution_order = 2
+  check_mode: true
+  changed_when: false
+  register: int_reg_pre_global_sustkover_hook
+  when: int_reg_sustkover_hook_file.stat.exists
+
+- name: Set susTkOver change fact
+  ansible.builtin.set_fact:
+    int_fact_sustkover_hook_change: >-
+      {% if int_reg_pre_global_sustkover_hook.msg == '' %}false{%
+      else %}true{%
+      endif %}
+  when: int_reg_sustkover_hook_file.stat.exists
+
+- name: Set susTkOver change fact default
+  ansible.builtin.set_fact:
+    int_fact_sustkover_hook_change: false
+  when: not int_reg_sustkover_hook_file.stat.exists
+
+- name: Check for susChkSrv hook
+  ansible.builtin.blockinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    marker_begin: "BEGIN susChkSrv hook"
+    marker_end: "END susChkSrv hook"
+    block: |
+      [ha_dr_provider_suschksrv]
+      provider = susChkSrv
+      path = /usr/share/SAPHanaSR/
+      execution_order = 3
+      action_on_loss=stop
+  check_mode: true
+  changed_when: false
+  register: int_reg_pre_global_suschksrv_hook
+  when: int_reg_suschksrv_hook_file.stat.exists
+
+- name: Set susChkSrv change fact
+  ansible.builtin.set_fact:
+    int_fact_suschksrv_hook_change: >-
+      {% if int_reg_pre_global_suschksrv_hook.msg == '' %}false{%
+      else %}true{%
+      endif %}
+  when: int_reg_suschksrv_hook_file.stat.exists
+
+- name: Set susChkSrv change fact default
+  ansible.builtin.set_fact:
+    int_fact_suschksrv_hook_change: false
+  when: not int_reg_suschksrv_hook_file.stat.exists
+
+- name: Set configuration needed fact
+  ansible.builtin.set_fact:
+    int_fact_configuration_needed: >-
+      {% if int_fact_saphanasr_hook_change
+      or
+      int_fact_sustkover_hook_change
+      or
+      int_fact_suschksrv_hook_change
+      %}true{%
+      else %}false{% endif %}
+
+- name: Print required action
+  ansible.builtin.debug:
+    msg: >-
+      {% if int_fact_configuration_needed == true
+      %}One or more hooks needed to be installed, HANA will be restarted{%
+      else %}System Replication hooks are already installed, HANA will not be
+      restarted{% endif %}
+
+- name: Shutdown HANA
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
+  when: int_fact_configuration_needed
+
+- name: Ensure SAPHanaSR hook is present in global.ini
+  ansible.builtin.blockinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    marker_begin: "BEGIN SAPHanaSR hook"
+    marker_end: "END SAPHanaSR hook"
+    block: |
+      [ha_dr_provider_saphanasr]
+      provider = SAPHanaSR
+      path = /usr/share/SAPHanaSR/
+      execution_order = 1
+  when: int_fact_saphanasr_hook_change
+
+- name: Ensure susTkOver hook is present in global.ini
+  ansible.builtin.blockinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    marker_begin: "BEGIN susTkOver hook"
+    marker_end: "END susTkOver hook"
+    block: |
+      [ha_dr_provider_sustkover]
+      provider = susTkOver
+      path = /usr/share/SAPHanaSR/
+      execution_order = 2
+  register: int_reg_pre_global_ini
+  when: int_fact_sustkover_hook_change
+
+- name: Ensure susChkSrv hook is present in global.ini
+  ansible.builtin.blockinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    marker_begin: "BEGIN susChkSrv hook"
+    marker_end: "END susChkSrv hook"
+    block: |
+      [ha_dr_provider_suschksrv]
+      provider = susChkSrv
+      path = /usr/share/SAPHanaSR/
+      execution_order = 3
+      action_on_loss=stop
+  register: int_reg_pre_global_ini
+  when: int_fact_suschksrv_hook_change
+
+- name: Ensure trace section is present in global.ini
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    line: "{{ int_var_trace_section_header }}"
+  when: int_fact_configuration_needed
+
+- name: Ensure trace footer is present in global.ini
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertafter: "{{ int_var_trace_section_header }}"
+    line: "{{ int_var_trace_section_footer }}"
+  when: int_fact_configuration_needed
+
+- name: Ensure SAPHanaSR trace is set to 'info'
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertbefore: "{{ int_var_trace_section_footer }}"
+    line: 'ha_dr_saphanasr = info'
+  when: int_fact_saphanasr_hook_change
+
+- name: Ensure susTkOver trace is set to 'info'
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertbefore: "{{ int_var_trace_section_footer }}"
+    line: 'ha_dr_sustkover = info'
+  when: int_fact_sustkover_hook_change
+
+- name: Ensure susChkSrv trace is set to 'info'
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertbefore: "{{ int_var_trace_section_footer }}"
+    line: 'ha_dr_suschksrv = info'
+  when: int_fact_suschksrv_hook_change
+
+- name: Ensure hooks sudo file is configured
+  ansible.builtin.template:
+    src: templates/sudoers.j2
+    dest: /etc/sudoers.d/saphanasr
+    owner: root
+    group: root
+    mode: '0660'
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Start HANA
+  ansible.builtin.command:
+    /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StartWait 600 5
+  when:
+    int_fact_saphanasr_hook_change
+    or int_fact_sustkover_hook_change
+    or int_fact_suschksrv_hook_change
