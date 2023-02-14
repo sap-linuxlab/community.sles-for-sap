@@ -14,14 +14,36 @@ The role performs the following tasks:
 * Creates a sudoers to allow the HANA user access to the hook
 * Starts HANA
 
+Currently, the role supports the 'Scale-up Performance Optimized' scenario only.
+
+The role will search for following hooks and install them if present:
+
+* SAPHanaSR
+* susTkOver
+* susChkSrv
+
 ## Variables
+
+Many of the variables used in the `hana-system-replication` can be reused here.
+However, like all of the roles in the collection, this role can be used
+independently of the other roles.
 
 ### Required variables
 
-* hana_sid - the three character 'System ID' of the HANA installation.
-* hana_instance_number - the two digit instance ID of the HANA installation.
-* primary - the host in the play that is the primary SAP HANA System Replication
-  server.
+* hana-sid - the three character 'System ID' of the HANA installation.
+* instance number - the two digit instance ID of the HANA installation.
+* hana_systemdb_password - the password of the HANA used that will update the
+* hana_system_replication_primary - the hostname of the primary node
+* hana_system_replication_secondary - the hostname of the secondary node
+
+### Optional variables
+
+* always_check_traces - enables the checking of HANA trace files for the correct
+  installation of the System Replication hooks regardless of the system state.
+  The use of this feature is discouraged. Trace files checks are carried out
+  automatically when hooks are freshly installed and do not usually need to be
+  rechecked. If hooks are not yet installed, using this option will cause
+  assertions to fail. Default is: false.
 
 An example playbook is available in the [playbooks directory](../../playbooks)
 of the repository.

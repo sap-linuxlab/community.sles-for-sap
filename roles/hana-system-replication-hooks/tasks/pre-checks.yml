@@ -11,7 +11,7 @@
       The variable '{{ item }}' is defined and populated.
   loop: "{{ int_var_required_vars }}"
 
-- name: Assert that the variable primary and secondary nodes match a hostname in the play
+- name: Assert that the primary and secondary nodes match a hostname in the play
   ansible.builtin.assert:
     that: >-
       {{ item.value }} in ansible_play_hosts
@@ -23,10 +23,12 @@
   loop:
     - { 'name': 'hana_system_replication_primary', 'value': hana_system_replication_primary }
     - { 'name': 'hana_system_replication_secondary', 'value': hana_system_replication_secondary }
+  check_mode: false
 
 - name: Set primary fact
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ hana_system_replication_primary == inventory_hostname }}"
+  check_mode: false
 
 - name: Include hana sid and instance variables
   ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
@@ -44,7 +46,7 @@
   ansible.builtin.package_facts:
   check_mode: false
 
-- name: Assert that HanaSR is installed
+- name: Assert required packages are installed
   ansible.builtin.assert:
     that: "'{{ item }}' in ansible_facts.packages"
     fail_msg: >-
@@ -53,9 +55,8 @@
     success_msg: >-
       The package '{{ item }}' is installed
   loop: "{{ int_var_required_packages }}"
-  check_mode: false
 
-- name: Check for existence of required files
+- name: Get information for required files
   ansible.builtin.stat:
     path: "{{ item }}"
   register: int_var_required_files_stat
@@ -82,25 +83,28 @@
     path: "{{ int_var_sustkover_hook }}"
   register: int_reg_sustkover_hook_file
   changed_when: false
+  check_mode: false
 
 - name: Check for susChkSrv hook file
   ansible.builtin.stat:
     path: "{{ int_var_suschksrv_hook }}"
   register: int_reg_suschksrv_hook_file
   changed_when: false
+  check_mode: false
 
 - name: Check for HookHelper file
   ansible.builtin.stat:
     path: "{{ int_var_hook_helper }}"
   register: int_reg_hook_helper_file
   changed_when: false
-
+  check_mode: false
 
 # Check system replication configuration
 - name: Set random query file paths
   ansible.builtin.set_fact:
     int_fact_pre_sys_rep_general_query_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
     int_fact_pre_sys_rep_general_result_file: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+  check_mode: false
 
 - name: Get HANA System Replication configuration
   when:
@@ -152,9 +156,18 @@
       changed_when: false
       check_mode: false
 
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ int_reg_pre_hsr_config }}"
+- name: Assert that system replication is configured
+  ansible.builtin.assert:
+    that: int_reg_pre_hsr_config.list | length != 0
+    fail_msg: >-
+      The query used to retrieve the HANA System Replication configuration
+      didn't return any lines. This indicates that system replication is not
+      currently configured. Ensure HANA System Replication is configured before
+      running this role.
+    success_msg: >-
+      The query used to retrieve the HANA System Replication configured retuned
+      content.
+  when: int_var_node_is_primary
 
 - name: Get configured HANA system replication master
   ansible.builtin.set_fact:
@@ -164,6 +177,7 @@
       first
       }}"
   when: int_var_node_is_primary
+  check_mode: false
 
 - name: Get configured HANA system replication secondary
   ansible.builtin.set_fact:
@@ -173,6 +187,7 @@
       first
       }}"
   when: int_var_node_is_primary
+  check_mode: false
 
 - name: Get configured HANA System Replication status
   ansible.builtin.set_fact:
@@ -182,6 +197,7 @@
       first
       }}"
   when: int_var_node_is_primary
+  check_mode: false
 
 - name: Get secondary HANA System Replication status
   ansible.builtin.set_fact:
@@ -190,6 +206,7 @@
       map(attribute='SECONDARY_ACTIVE_STATUS') |
       first == 'YES' %}True{% else %}False{% endif %}"
   when: int_var_node_is_primary
+  check_mode: false
 
 - name: Get primary site name
   ansible.builtin.set_fact:
@@ -199,6 +216,7 @@
       first
       }}"
   when: int_var_node_is_primary
+  check_mode: false
 
 - name: Get secondary site name
   ansible.builtin.set_fact:
@@ -208,16 +226,19 @@
       first
       }}"
   when: int_var_node_is_primary
+  check_mode: false
 
 - name: Copy primary site name fact to secondary
   ansible.builtin.set_fact:
     int_var_primary_site: "{{ hostvars[hana_system_replication_primary].int_var_primary_site }}"
   when: not int_var_node_is_primary
+  check_mode: false
 
 - name: Copy secondary site name fact to secondary
   ansible.builtin.set_fact:
     int_var_secondary_site: "{{ hostvars[hana_system_replication_secondary].int_var_primary_site }}"
   when: not int_var_node_is_primary
+  check_mode: false
 
 - name: Assert that configured primary HANA system replication host matches configuration
   ansible.builtin.assert:
@@ -232,7 +253,6 @@
       The configured and expected primary HANA system replication host match
       ({{ int_fact_primary_hsr_host }}).
   when: int_var_node_is_primary
-  check_mode: false
 
 - name: Assert that configured secondary HANA system replication host matches configuration
   ansible.builtin.assert:
@@ -247,7 +267,6 @@
       The configured and expected primary HANA system replication host match
       ({{ int_fact_secondary_hsr_host }}).
   when: int_var_node_is_primary
-  check_mode: false
 
 - name: Assert that HANA System Replication status is active
   ansible.builtin.assert:

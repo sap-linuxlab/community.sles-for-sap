@@ -10,4 +10,3 @@
 - name: Run Post-Checks
   ansible.builtin.include_tasks:
     ./post-checks.yml
-  tags: regex

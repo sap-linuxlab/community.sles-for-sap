@@ -253,6 +253,11 @@
       changed_when: false
       check_mode: false
 
+- name: Debug
+  ansible.builtin.debug:
+    msg: "{{ int_reg_number_of_configured_tiers }}"
+  when: int_var_node_is_primary
+
 - name: Assert a three tier configuration is not present
   ansible.builtin.assert:
     that: >-

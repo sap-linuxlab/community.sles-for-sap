@@ -1,0 +1,14 @@
+---
+- name: Use hana-system-replication-hooks role
+  hosts: all
+  remote_user: my_ansible_user
+  become: true
+  any_errors_fatal: true
+  vars:
+    hana_sid: 'HN1'
+    hana_instance_number: '00'
+    hana_system_replication_primary: 'hana01'
+    hana_system_replication_secondary: 'hana02'
+    hana_systemdb_password: 'Example_poor_passwo0rd'
+  roles:
+    - { role: ../roles/hana-system-replication-hooks }

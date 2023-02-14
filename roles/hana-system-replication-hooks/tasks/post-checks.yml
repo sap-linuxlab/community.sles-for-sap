@@ -56,10 +56,6 @@
       changed_when: false
       check_mode: false
 
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ int_reg_pre_hsr_config }}"
-
 - name: Get configured HANA system replication master
   ansible.builtin.set_fact:
     int_fact_primary_hsr_host: "{{
@@ -68,6 +64,8 @@
       first
       }}"
   when: int_var_node_is_primary
+  changed_when: false
+  check_mode: false
 
 - name: Get configured HANA system replication secondary
   ansible.builtin.set_fact:
@@ -77,6 +75,8 @@
       first
       }}"
   when: int_var_node_is_primary
+  changed_when: false
+  check_mode: false
 
 - name: Get configured HANA System Replication status
   ansible.builtin.set_fact:
@@ -86,6 +86,8 @@
       first
       }}"
   when: int_var_node_is_primary
+  changed_when: false
+  check_mode: false
 
 - name: Get secondary HANA System Replication status
   ansible.builtin.set_fact:
@@ -94,6 +96,8 @@
       map(attribute='SECONDARY_ACTIVE_STATUS') |
       first == 'YES' %}True{% else %}False{% endif %}"
   when: int_var_node_is_primary
+  changed_when: false
+  check_mode: false
 
 - name: Get primary site name
   ansible.builtin.set_fact:
@@ -103,6 +107,8 @@
       first
       }}"
   when: int_var_node_is_primary
+  changed_when: false
+  check_mode: false
 
 - name: Get secondary site name
   ansible.builtin.set_fact:
@@ -112,6 +118,8 @@
       first
       }}"
   when: int_var_node_is_primary
+  changed_when: false
+  check_mode: false
 
 - name: Assert that configured primary HANA system replication host matches configuration
   ansible.builtin.assert:
@@ -127,6 +135,7 @@
       ({{ int_fact_primary_hsr_host }}).
   when: int_var_node_is_primary
   check_mode: false
+  changed_when: false
 
 - name: Assert that configured secondary HANA system replication host matches configuration
   ansible.builtin.assert:
@@ -142,6 +151,7 @@
       ({{ int_fact_secondary_hsr_host }}).
   when: int_var_node_is_primary
   check_mode: false
+  changed_when: false
 
 - name: Assert that HANA System Replication status is active
   ansible.builtin.assert:
@@ -156,6 +166,7 @@
       The system replication status is {{ int_fact_hsr_status }}
   when: int_var_node_is_primary
   check_mode: false
+  changed_when: false
 
 - name: Assert that secondary HANA System Replication status is active
   ansible.builtin.assert:
@@ -170,6 +181,7 @@
     success_msg: >-
       The system replication status is '{{ int_fact_hsr_secondary_status }}'.
   when: int_var_node_is_primary
+  changed_when: false
 
 # What follows is an attempt to check that the hook/s was/were installed OK
 # https://documentation.suse.com/sbp/all/html/SLES4SAP-hana-sr-guide-PerfOpt-15/index.html#id-testing-the-hook-integration
@@ -183,21 +195,275 @@
     paths: /usr/sap/SU1/HDB00/{{ inventory_hostname }}/trace
     use_regex: true
     patterns: 'nameserver_{{ inventory_hostname }}.[0-9]{5}.[0-9]{3}.trc'
-    # nameserver_sstringer-saptune-ansilble-vm-02.[0-9]{3,6}.[0-9]{1-4}.trc
   register: int_fact_found_nameserver_trace_files
-  when: int_fact_configuration_needed
+  when: int_fact_configuration_needed or always_check_traces
 
 # Get the latest file by filename
-- name: Set fact for latest filename
+- name: Set fact for latest nameserver filename
   ansible.builtin.set_fact:
     int_fact_latest_nameserver_file: "{{
       int_fact_found_nameserver_trace_files.files |
       community.general.json_query(q1)
       }}"
   vars:
-    - q1: "max_by([], &mtime).path"
-  when: int_fact_configuration_needed
+    q1: 'max_by([], &mtime).path'
+  changed_when: false
+  failed_when: false
+  when: int_fact_configuration_needed or always_check_traces
 
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ int_fact_latest_nameserver_file }}"
+# Assert here, before continuing to task that involve the file content
+- name: Assert latest nameserver trace file was found
+  ansible.builtin.assert:
+    that: int_fact_latest_nameserver_file is defined
+    fail_msg: >-
+      It was not possible to locate the latest version of the nameserver
+      trace file. This could be either a change to the trace file structure
+      or location. Or it could be that there is a serious problem with the
+      HANA database. Check that HANA is running correctly and the
+      sles-for-sap-roles is up to date.
+    success_msg: >-
+      The file {{ int_fact_latest_nameserver_file }} was identified as the
+      latest nameserver trace file
+  changed_when: false
+  failed_when: false
+  when: int_fact_configuration_needed or always_check_traces
+
+- name: Store file
+  ansible.builtin.command:
+    "cat {{ int_fact_latest_nameserver_file }}"
+  register: int_reg_nameserver_data
+  check_mode: false
+  changed_when: false
+  failed_when: false
+  when: int_fact_configuration_needed or always_check_traces
+
+
+- name: Get NameserverStartUp
+  ansible.builtin.set_fact:
+    int_fact_latest_nameserver_start: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*Starting hdbnameserver") |
+      last }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_configuration_needed or always_check_traces
+
+- name: Get SAPHanaSR Hook Load start time
+  ansible.builtin.set_fact:
+    int_fact_latest_saphanasr_load_start: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*HADR.*load.*'SAPHanaSR'") |
+      last
+      }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_saphanasr_hook_change or always_check_traces
+
+- name: Get SAPHanaSR Hook init time
+  ansible.builtin.set_fact:
+    int_fact_latest_saphanasr_init: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*SAPHanaSR.init") |
+      last
+      }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_saphanasr_hook_change or always_check_traces
+
+- name: Get SusTkOver Hook Load start time
+  ansible.builtin.set_fact:
+    int_fact_latest_sustkover_load_start: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*HADR.*load.*susTkOver") |
+      last
+      }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_sustkover_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
+
+- name: Get SusTkOver Hook init start time
+  ansible.builtin.set_fact:
+    int_fact_latest_sustkover_init: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*susTkOver.init") |
+      last
+      }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_sustkover_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
+
+- name: Get SusChkSrv Hook Load start time
+  ansible.builtin.set_fact:
+    int_fact_latest_suschksrv_load_start: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*HADR.*load.*susChkSrv") |
+      last
+      }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+
+- name: Get SusChkSrv Hook init start time
+  ansible.builtin.set_fact:
+    int_fact_latest_suschksrv_init: >-
+      {{ int_reg_nameserver_data.stdout |
+      ansible.builtin.regex_findall("[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}.*susChkSrv.init") |
+      last
+      }}
+  changed_when: false
+  failed_when: false
+  when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+
+- name: Assert that SAPHanaSR trace file data was found
+  ansible.builtin.assert:
+    that: "{{ item.var }} is defined"
+    fail_msg: >-
+      The {{ item.name }} wasn't found in the latest nameserver
+      trace file. This suggests that the file format may have changed and
+      this version of sles-for-sap roles is out of date. However, there is
+      also a chance that the HANA database is not functioning correctly.
+      Check for a newer version of sles-for-sap-roles and also check that
+      HANA is functioning correctly.
+    success_msg: >-
+      The {{ item.name }} was identified successfully.
+  loop:
+    - { 'name': 'nameserver start time', 'var': 'int_fact_latest_nameserver_start' }
+    - { 'name': 'SAPHanaSR load event', 'var': 'int_fact_latest_saphanasr_load_start' }
+    - { 'name': 'SAPHanaSR init event', 'var': 'int_fact_latest_saphanasr_init' }
+  changed_when: false
+  check_mode: false
+  when: int_fact_saphanasr_hook_change or always_check_traces
+
+- name: Assert that SusTkOver trace file data was found
+  ansible.builtin.assert:
+    that: "{{ item.var }} is defined"
+    fail_msg: >-
+      The {{ item.name }} wasn't found in the latest nameserver
+      trace file. This suggests that the file format may have changed and
+      this version of sles-for-sap roles is out of date. However, there is
+      also a chance that the HANA database is not functioning correctly.
+      Check for a newer version of sles-for-sap-roles and also check that
+      HANA is functioning correctly.
+    success_msg: >-
+      The {{ item.name }} was identified successfully.
+  loop:
+    - { 'name': 'SusTkOver load event', 'var': 'int_fact_latest_suschksrv_load_start' }
+    - { 'name': 'SusTkOver init event', 'var': 'int_fact_latest_suschksrv_init' }
+  changed_when: false
+  check_mode: false
+  when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+
+- name: Assert that SusChkSrv trace file data was found
+  ansible.builtin.assert:
+    that: "{{ item.var }} is defined"
+    fail_msg: >-
+      The {{ item.name }} wasn't found in the latest nameserver
+      trace file. This suggests that the file format may have changed and
+      this version of sles-for-sap roles is out of date. However, there is
+      also a chance that the HANA database is not functioning correctly.
+      Check for a newer version of sles-for-sap-roles and also check that
+      HANA is functioning correctly.
+    success_msg: >-
+      The {{ item.name }} was identified successfully.
+  loop:
+    - { 'name': 'SusTkOver load event', 'var': 'int_fact_latest_sustkover_load_start' }
+    - { 'name': 'SusTkOver init event', 'var': 'int_fact_latest_sustkover_init' }
+  changed_when: false
+  check_mode: false
+  when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+
+- name: Assert that SAPHanaSR load happened after nameserver startup
+  ansible.builtin.assert:
+    that: >-
+        ((int_fact_latest_saphanasr_load_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime) -
+        (int_fact_latest_nameserver_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime)).total_seconds() >= 0
+    fail_msg: >-
+      The SAPHanaSR was last started before the current HANA startup, this
+      suggests that the hook was not loaded!
+    success_msg: >-
+      The SAPHanaSR hook was loaded successfully.
+  when: int_fact_saphanasr_hook_change or always_check_traces
+
+- name: Assert that SAPHanaSR init happened after SAPHanaSR load
+  ansible.builtin.assert:
+    that: >-
+        (( int_fact_latest_saphanasr_init |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime) -
+        (int_fact_latest_saphanasr_load_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime)).total_seconds() >= 0
+    fail_msg: >-
+      The SAPHanaSR hook was last initiated before the current HANA startup,
+      this suggests that the hook was not initiated!
+    success_msg: >-
+      The SAPHanaSR hook was initiated successfully.
+  when: int_fact_saphanasr_hook_change or always_check_traces
+
+- name: Assert that SusTkOver load happened after nameserver startup
+  ansible.builtin.assert:
+    that: >-
+        ((int_fact_latest_sustkover_load_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime) -
+        (int_fact_latest_nameserver_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime)).total_seconds() >= 0
+    fail_msg: >-
+      The SusTkOver was last started before the current HANA startup, this
+      suggests that the hook was not loaded!
+    success_msg: >-
+      The SusTkOver hook was loaded successfully.
+  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
+
+- name: Assert that SusTkOver init happened after SusTkOver load
+  ansible.builtin.assert:
+    that: >-
+        ((int_fact_latest_sustkover_init |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime) -
+        (int_fact_latest_sustkover_load_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime)).total_seconds() >= 0
+    fail_msg: >-
+      The SAPHanaSR hook was last initiated before the current HANA startup,
+      this suggests that the hook was not initiated!
+    success_msg: >-
+      The SAPHanaSR hook was initiated successfully.
+  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
+
+- name: Assert that SusChkSrv load happened after nameserver startup
+  ansible.builtin.assert:
+    that: >-
+        ((int_fact_latest_suschksrv_load_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime) -
+        (int_fact_latest_nameserver_start |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime)).total_seconds() >= 0
+    fail_msg: >-
+      The SusChkSrv was last started before the current HANA startup, this
+      suggests that the hook was not loaded!
+    success_msg: >-
+      The SusTkOver hook was loaded successfully.
+  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+
+- name: Assert that SusChkSrv init happened after SusChkSrv load
+  ansible.builtin.assert:
+    that: >-
+        ((int_fact_latest_suschksrv_init |
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime) -
+        (int_fact_latest_suschksrv_load_start|
+        ansible.builtin.regex_search('[0-9]{4}-[0-9]{2}-[0-9]{2}.*[0-9]{2}:[0-9]{2}:[0-9]{2}') |
+        to_datetime)).total_seconds() >= 0
+    fail_msg: >-
+      The SAPHanaSR hook was last initiated before the current HANA startup,
+      this suggests that the hook was not initiated!
+    success_msg: >-
+      The SAPHanaSR hook was initiated successfully.
+  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists

@@ -2,16 +2,13 @@
 # This task list is a little complex and works differently to the others in this
 # collection so far. Here's a outline of the problem and how it is overcome.
 # In order to install the hooks to the HANA global.ini file, the HANA DB needs
-# to be shutdown. The role should be able to run and make no changes if non need
-# to be made, therefore, HANA should only be shutdown if it is really required.
-# Therefore, the ini_file module is first run in check_mode for each hook, to
-# check if any changes need to be made. The ini_file module will return the
-# value 'OK' in the msg key if no changes need to be made. Therefore, this value
-# is used to determine if a shutting HANA down is necessary.
-
-# The check_mode version of 'blockinfile' registers the filed 'msg' is it's
-# return. When 'msg' is an empty string, no action is required. Therefore we
-# only shutdown HANA when the 'msg' field is not an empty string.
+# to be shutdown. The role should be able to run and make no changes if non
+# needed to be made, therefore, HANA should only be shutdown if it is really
+# required. Therefore, the blockinfile module is first run in check_mode for
+# each hook, to check if any changes need to be made. The blockinfile module
+# will return the value an empty string in the msg key if no changes need to be
+# made. Therefore, this value is used to determine if a shutting HANA down is
+# necessary.
 
 # This technique is repeated for each hook found. If any change is required,
 # HANA will be stopped, the required hooks updated and HANA will be restarted
@@ -24,7 +21,8 @@
     owner: "{{ hana_sid | lower }}adm"
     group: "sapsys"
     mode: '0640'
-    marker: "#_ANSIBLE_MANAGED_BLOCK_saphanasr_hook_#"
+    marker_begin: "BEGIN SAPHanaSR hook"
+    marker_end: "END SAPHanaSR hook"
     block: |
       [ha_dr_provider_saphanasr]
       provider = SAPHanaSR
@@ -49,7 +47,8 @@
     owner: "{{ hana_sid | lower }}adm"
     group: "sapsys"
     mode: '0640'
-    marker: "#_ANSIBLE_MANAGED_BLOCK_sustkover_hook_#"
+    marker_begin: "BEGIN susTkOver hook"
+    marker_end: "END susTkOver hook"
     block: |
       [ha_dr_provider_sustkover]
       provider = susTkOver
@@ -81,7 +80,8 @@
     owner: "{{ hana_sid | lower }}adm"
     group: "sapsys"
     mode: '0640'
-    marker: "#_ANSIBLE_MANAGED_BLOCK_susChkSrv_hook_#"
+    marker_begin: "BEGIN susChkSrv hook"
+    marker_end: "END susChkSrv hook"
     block: |
       [ha_dr_provider_suschksrv]
       provider = susChkSrv
@@ -128,8 +128,7 @@
 - name: Shutdown HANA
   ansible.builtin.command:
     /usr/sap/hostctrl/exe/sapcontrol -nr {{ hana_instance_number }} -function StopWait 600 5
-  when:
-    int_fact_configuration_needed
+  when: int_fact_configuration_needed
 
 - name: Ensure SAPHanaSR hook is present in global.ini
   ansible.builtin.blockinfile:
@@ -139,13 +138,13 @@
     owner: "{{ hana_sid | lower }}adm"
     group: "sapsys"
     mode: '0640'
-    marker: "#_ANSIBLE_MANAGED_BLOCK_saphanasr_hook_#"
+    marker_begin: "BEGIN SAPHanaSR hook"
+    marker_end: "END SAPHanaSR hook"
     block: |
       [ha_dr_provider_saphanasr]
       provider = SAPHanaSR
       path = /usr/share/SAPHanaSR/
       execution_order = 1
-  register: int_reg_pre_global_ini
   when: int_fact_saphanasr_hook_change
 
 - name: Ensure susTkOver hook is present in global.ini
@@ -156,7 +155,8 @@
     owner: "{{ hana_sid | lower }}adm"
     group: "sapsys"
     mode: '0640'
-    marker: "#_ANSIBLE_MANAGED_BLOCK_sustkover_hook_#"
+    marker_begin: "BEGIN susTkOver hook"
+    marker_end: "END susTkOver hook"
     block: |
       [ha_dr_provider_sustkover]
       provider = susTkOver
@@ -173,7 +173,8 @@
     owner: "{{ hana_sid | lower }}adm"
     group: "sapsys"
     mode: '0640'
-    marker: "#_ANSIBLE_MANAGED_BLOCK_susChkSrv_hook_#"
+    marker_begin: "BEGIN susChkSrv hook"
+    marker_end: "END susChkSrv hook"
     block: |
       [ha_dr_provider_suschksrv]
       provider = susChkSrv
@@ -181,6 +182,65 @@
       execution_order = 3
       action_on_loss=stop
   register: int_reg_pre_global_ini
+  when: int_fact_suschksrv_hook_change
+
+- name: Ensure trace section is present in global.ini
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    line: "{{ int_var_trace_section_header }}"
+  when: int_fact_configuration_needed
+
+- name: Ensure trace footer is present in global.ini
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertafter: "{{ int_var_trace_section_header }}"
+    line: "{{ int_var_trace_section_footer }}"
+  when: int_fact_configuration_needed
+
+- name: Ensure SAPHanaSR trace is set to 'info'
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertbefore: "{{ int_var_trace_section_footer }}"
+    line: 'ha_dr_saphanasr = info'
+  when: int_fact_saphanasr_hook_change
+
+- name: Ensure susTkOver trace is set to 'info'
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertbefore: "{{ int_var_trace_section_footer }}"
+    line: 'ha_dr_sustkover = info'
+  when: int_fact_sustkover_hook_change
+
+- name: Ensure susChkSrv trace is set to 'info'
+  ansible.builtin.lineinfile:
+    path: "/usr/sap/{{ hana_sid }}/SYS/global/hdb/custom/config/global.ini"
+    state: present
+    create: true
+    owner: "{{ hana_sid | lower }}adm"
+    group: "sapsys"
+    mode: '0640'
+    insertbefore: "{{ int_var_trace_section_footer }}"
+    line: 'ha_dr_suschksrv = info'
   when: int_fact_suschksrv_hook_change
 
 - name: Ensure hooks sudo file is configured
