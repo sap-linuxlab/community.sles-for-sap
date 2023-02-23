@@ -237,7 +237,6 @@
   failed_when: false
   when: int_fact_configuration_needed or always_check_traces
 
-
 - name: Get NameserverStartUp
   ansible.builtin.set_fact:
     int_fact_latest_nameserver_start: >-
@@ -256,7 +255,6 @@
       last
       }}
   changed_when: false
-  failed_when: false
   when: int_fact_saphanasr_hook_change or always_check_traces
 
 - name: Get SAPHanaSR Hook init time
@@ -267,7 +265,6 @@
       last
       }}
   changed_when: false
-  failed_when: false
   when: int_fact_saphanasr_hook_change or always_check_traces
 
 - name: Get SusTkOver Hook Load start time
@@ -278,7 +275,6 @@
       last
       }}
   changed_when: false
-  failed_when: false
   when: int_fact_sustkover_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
 
 - name: Get SusTkOver Hook init start time
@@ -289,7 +285,6 @@
       last
       }}
   changed_when: false
-  failed_when: false
   when: int_fact_sustkover_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
 
 - name: Get SusChkSrv Hook Load start time
@@ -300,7 +295,6 @@
       last
       }}
   changed_when: false
-  failed_when: false
   when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
 
 - name: Get SusChkSrv Hook init start time
@@ -311,7 +305,6 @@
       last
       }}
   changed_when: false
-  failed_when: false
   when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
 
 - name: Assert that SAPHanaSR trace file data was found
@@ -418,7 +411,7 @@
       suggests that the hook was not loaded!
     success_msg: >-
       The SusTkOver hook was loaded successfully.
-  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
+  when: int_fact_sustkover_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
 
 - name: Assert that SusTkOver init happened after SusTkOver load
   ansible.builtin.assert:
@@ -434,8 +427,9 @@
       this suggests that the hook was not initiated!
     success_msg: >-
       The SAPHanaSR hook was initiated successfully.
-  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
+  when: int_fact_sustkover_hook_change or always_check_traces and int_reg_sustkover_hook_file.stat.exists
 
+# This one
 - name: Assert that SusChkSrv load happened after nameserver startup
   ansible.builtin.assert:
     that: >-
@@ -450,7 +444,7 @@
       suggests that the hook was not loaded!
     success_msg: >-
       The SusTkOver hook was loaded successfully.
-  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+  when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
 
 - name: Assert that SusChkSrv init happened after SusChkSrv load
   ansible.builtin.assert:
@@ -466,4 +460,4 @@
       this suggests that the hook was not initiated!
     success_msg: >-
       The SAPHanaSR hook was initiated successfully.
-  when: int_fact_saphanasr_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
+  when: int_fact_suschksrv_hook_change or always_check_traces and int_reg_suschksrv_hook_file.stat.exists
