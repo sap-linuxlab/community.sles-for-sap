@@ -1,0 +1,6 @@
+clone {{ int_fact_clone.name }} {{ int_fact_clone.clone }} \
+{% for key, value in int_fact_clone.items() %}
+{% if key != 'name' and key != 'clone' %}
+  {{ value.name }} {% for k, v in value.items() %}{% if k != 'name'%}{{ k }}={{ v }} {% endif %}{% endfor %} \
+{% endif %}
+{% endfor %}

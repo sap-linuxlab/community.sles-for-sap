@@ -1,0 +1,123 @@
+---
+# Load the required variables for this scenario
+- name: Include scenario variables
+  ansible.builtin.include_vars: azure_sbd.yml
+
+# Check for cluster configured file
+- name: Check for cluster state file
+  ansible.builtin.stat:
+    path: "{{ int_var_azure_cluster_state }}"
+  register: int_reg_azure_cluster_stat
+
+- name: Set configuration status flag
+  ansible.builtin.set_fact:
+    int_fact_azure_cluster_configured: "{{
+       int_reg_azure_cluster_stat.stat.exists
+     }}"
+
+
+- name: Set cluster configuration facts
+  ansible.builtin.set_fact:
+    int_fact_cluster_config: "{{ cluster_config }}"
+    int_fact_cluster_config_file_name: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+- name: Write the pacemaker configuration
+  ansible.builtin.template:
+    src: cluster_config.j2
+    dest: "{{ int_fact_cluster_config_file_name }}"
+    owner: root
+    group: root
+    mode: '0400'
+  when:
+    - not int_fact_azure_cluster_configured
+    - int_var_node_is_primary
+
+- name: Configure csync2 [primary]
+  ansible.builtin.command:
+    crm cluster init csync2 -y
+  when:
+    - not int_fact_azure_cluster_configured
+    - int_var_node_is_primary
+
+- name: Configure sbd
+  ansible.builtin.command:
+    "crm cluster init sbd -y -s {{ sbd_devices | join(',') }}"
+  when:
+    - not int_fact_azure_cluster_configured
+    - int_var_node_is_primary
+
+- name: Start the cluster on primary
+  ansible.builtin.command:
+    crm cluster start
+  when:
+    - not int_fact_azure_cluster_configured
+    - int_var_node_is_primary
+
+- name: Ensure the cluster is started and is stable
+  ansible.builtin.command: crm status
+  changed_when: false
+  register: int_reg_crm_status
+  until: int_reg_crm_status.stdout is regex('1 node configured')
+  retries: 10
+  timeout: 6
+  when:
+    - not int_fact_azure_cluster_configured
+    - int_var_node_is_primary
+
+- name: Get cysnc2 configure on non-primary node/s
+  ansible.builtin.command:
+    "crm cluster join -y csync2 -c {{ hostvars[primary]['ansible_default_ipv4']['address'] }}"
+  when:
+    - not int_fact_azure_cluster_configured
+    - not int_var_node_is_primary
+
+# The next step should have been achived for primary, but as the module is
+# idempotent, it won't cause any harm.
+- name: Enable sdb on all nodes
+  ansible.builtin.systemd:
+    service: 'sbd'
+    enabled: true
+  when: not int_fact_azure_cluster_configured
+
+- name: Start the cluster on non-primary node/s
+  ansible.builtin.command:
+    crm cluster start
+  when:
+    - not int_fact_azure_cluster_configured
+    - not int_var_node_is_primary
+
+- name: Create cluster query string
+  ansible.builtin.set_fact:
+    int_fact_cluster_regex: "{{ ansible_play_hosts | length }} nodes configured"
+
+- name: Ensure the cluster is started and is stable
+  ansible.builtin.command: crm status
+  changed_when: false
+  register: int_reg_crm_status
+  until: int_reg_crm_status.stdout is regex(int_fact_cluster_regex)
+  retries: 10
+  timeout: 6
+  when:
+    - not int_fact_azure_cluster_configured
+    - int_var_node_is_primary
+
+# - name: Enter cluster maintenance mode
+#   ansible.builtin.command:
+#     sudo crm configure property maintenance-mode=true
+#   when:
+#     - not int_fact_azure_cluster_configured
+#     - int_var_node_is_primary
+# 
+# - name: Load the cluster config
+#   ansible.builtin.command:
+#     "crm configure load update {{ int_fact_cluster_config_file_name }}"
+#   when:
+#     - not int_fact_azure_cluster_configured
+#     - int_var_node_is_primary
+# - name: Leave cluster maintenance mode
+#   ansible.builtin.command:
+#     crm configure property maintenance-mode=false
+#   when:
+#     - not int_fact_azure_cluster_configured
+#     - int_var_node_is_primary
+# 

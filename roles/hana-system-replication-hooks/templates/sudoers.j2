@@ -3,7 +3,7 @@ Cmnd_Alias SOK_SITEA    = /usr/sbin/crm_attribute -n hana_{{ hana_sid | lower}}_
 Cmnd_Alias SFAIL_SITEA  = /usr/sbin/crm_attribute -n hana_{{ hana_sid | lower}}_site_srHook_{{ int_var_primary_site }} -v SFAIL -t crm_config -s SAPHanaSR
 Cmnd_Alias SOK_SITEB    = /usr/sbin/crm_attribute -n hana_{{ hana_sid | lower}}_site_srHook_{{ int_var_secondary_site }} -v SOK   -t crm_config -s SAPHanaSR
 Cmnd_Alias SFAIL_SITEB  = /usr/sbin/crm_attribute -n hana_{{ hana_sid | lower}}_site_srHook_{{ int_var_secondary_site }} -v SFAIL -t crm_config -s SAPHanaSR
-{% if int_reg_hook_helper_file.stat.exists == true %}Cmnd_Alias HOOK_HELPER  = /usr/sbin/SAPHanaSR-hookHelper --case=checkTakeOver --{{ hana_sid | lower }}adm{% endif %}
+{% if int_reg_hook_helper_file.stat.exists == true %}Cmnd_Alias HOOK_HELPER  = /usr/sbin/SAPHanaSR-hookHelper --sid={{ hana_sid  }} --case=checkTakeOver{% endif %}
 
 {{ hana_sid | lower }}adm ALL=(ALL) NOPASSWD: SOK_SITEA, SFAIL_SITEA, SOK_SITEB, SFAIL_SITEB, {%
 if int_reg_hook_helper_file.stat.exists == true %}HOOK_HELPER{%

@@ -1,0 +1,4 @@
+- name: Start pacemaker
+  ansible.builtin.systemd:
+    name: pacemaker
+    state: started

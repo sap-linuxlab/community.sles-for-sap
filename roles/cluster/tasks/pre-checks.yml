@@ -1,0 +1,140 @@
+---
+- name: Assert that required variables are defined
+  ansible.builtin.assert:
+    that: "{{ item }} is defined"
+    fail_msg: >-
+      The required variable '{{ item }}' is not defined. This variable must be
+      defined when using this role.
+    success_msg: >-
+      The variable '{{ item }}' is defined.
+  loop:
+    - 'platform'
+    - 'stonith'
+    - 'primary'
+    - 'virtual_ip'
+    - 'hacluster_password'
+
+- name: Assert that primary variable matches a node in the play
+  ansible.builtin.assert:
+    that: >-
+      "'{{ primary }}' in ansible_play_hosts"
+    fail_msg: >-
+      The value of the variable 'primary'({{ primary }}) is not a host in this
+      play. Ensure that the variable primary matches a host in the play.
+    success_msg: >-
+      The value of 'primary' matches a host in the play.
+  check_mode: false
+
+- name: Set primary fact
+  ansible.builtin.set_fact:
+    int_var_node_is_primary: "{{ primary == inventory_hostname }}"
+  check_mode: false
+
+- name: Collect package information
+  ansible.builtin.package_facts:
+
+- name: Assert that required packages are installed
+  ansible.builtin.assert:
+    that: "'{{ item }}' in ansible_facts.packages"
+    fail_msg: >-
+      The package {{ item }} is not installed. This package is required for
+      this role. The package must be installed for the role to execute
+      successfully.
+    success_msg: >-
+      The required package {{ item }} is installed
+  loop: "{{ int_var_required_packages }}"
+
+- name: Assert that Azure specific required packages are installed
+  ansible.builtin.assert:
+    that: "'{{ item }}' in ansible_facts.packages"
+    fail_msg: >-
+      The package {{ item }} is not installed. This package is required for
+      this role. The package must be installed for the role to execute
+      successfully.
+    success_msg: >-
+      The required package {{ item }} is installed
+  loop: "{{ int_var_required_packages_azure }}"
+
+- name: Collect service information
+  ansible.builtin.service_facts:
+
+- name: Assert that required services are available
+  ansible.builtin.assert:
+    that: "'{{ item }}' in ansible_facts.services"
+    fail_msg: >-
+      The service '{{ item }}' was not found on this system. Ensure that this
+      service is available before running this role.
+    success_msg: >-
+      The service '{{ item }}' was discovered on this system.
+  loop: "{{ int_var_required_services }}"
+
+- name: Assert that the platform is supported
+  ansible.builtin.assert:
+    that: "'{{ platform }}' in int_var_supported_platforms"
+    fail_msg: >-
+      {{ platform }} is not a supported platform for this role. Supported
+      platforms are: {{ int_var_supported_platforms | join(', ') }}.
+    success_msg: >-
+      The platform '{{ platform }}' is supported.
+
+- name: Set platform facts
+  ansible.builtin.set_fact:
+    platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
+
+- name: Assert that STONITH method is supported
+  ansible.builtin.assert:
+    that: "'{{ stonith }}' in int_var_supported_stonith"
+    fail_msg: >-
+      {{ stonith }} is not a supported platform for this role. Supported
+      platforms are: {{ int_var_supported_stonith | join(', ') }}.
+    success_msg: >-
+      The STONITH method '{{ stonith }}' is supported.
+
+- name: Set STONITH facts
+  ansible.builtin.set_fact:
+    stonith_sbd: "{% if stonith == 'sbd' %}true{% else %}false{% endif %}"
+
+- name: Assert that sbd_devices is defined when sdb is used
+  ansible.builtin.assert:
+    that: "sbd_devices is defined"
+    fail_msg: >-
+      The variable 'sbd_devices' must be defined when the stonith method is set
+      to sbd. The 'sbd_devices' must be a list of strings. Each string should be
+      the path to a shared scsi device that available on each node. One, two or
+      three devices may be specified.
+    success_msg: >-
+      The variable 'sbd_devices' is defined.
+  when: stonith_sbd
+
+- name: Assert the sbd_devices has the correct amount of devices
+  ansible.builtin.assert:
+    that:
+      - sbd_devices is not string
+      - sbd_devices is not mapping
+      - sbd_devices is iterable
+      - sbd_devices | length >= 1
+      - sbd_devices | length <= 3
+    fail_msg: >-
+      The variable 'sbd_devices' is either not a list or is a list that contains
+      an incorrect number of elements. Ensure that 'sbd_devices' is a list of
+      one, two or three scsi devices to be used for sbd.
+    success_msg: >-
+      The variable 'sbd_devices' appears to be correctly populated.
+  when: stonith_sbd
+
+- name: Check sbd_device paths
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: int_reg_sbd_device_check
+  loop: "{{ sbd_devices }}"
+
+- name: Assert sbd_devices are available
+  ansible.builtin.assert:
+    that: item.stat.exists
+    fail_msg: >-
+      The device {{ item.item }} was not found.  Ensure that all devices
+      that are declared in the sbd_devices variable are available to all the
+      nodes in the play.
+    success_msg: >-
+      Device {{ item.item }} found
+  loop: "{{ int_reg_sbd_device_check.results }}"

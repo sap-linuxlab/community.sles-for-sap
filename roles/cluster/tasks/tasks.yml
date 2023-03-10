@@ -1,0 +1,25 @@
+---
+- name: Show platform and STONITH
+  ansible.builtin.debug:
+    msg: "Platform:{{ platform }}, STONITH:{{ stonith }}"
+
+- name: Run cluster prerequisite tasks
+  ansible.builtin.include_tasks: tasks_pre_cluster.yml
+
+- name: Run sbd tasks
+  ansible.builtin.include_tasks: tasks_sbd_preconfigure.yml
+  when:
+    - stonith_sbd
+
+- name: Run watchdog tasks
+  ansible.builtin.include_tasks: tasks_sbd_watchdog.yml
+  when: stonith_sbd
+
+- name: Create corosysnc configuration
+  ansible.builtin.include_tasks: tasks_corosync_configuration.yml
+
+- name: Configure HANA cluster on Azure HANA using SBD
+  ansible.builtin.include_tasks: tasks_azure_hana_cluster.yml
+  when:
+    - platform_azure
+    - stonith_sbd

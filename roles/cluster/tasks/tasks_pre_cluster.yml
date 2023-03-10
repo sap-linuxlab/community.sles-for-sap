@@ -1,0 +1,102 @@
+---
+- name: Ensure logd is enabled and started
+  ansible.builtin.systemd:
+    name: logd
+    state: started
+    enabled: true
+
+- name: Ensure sysctl tuning is present
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ int_var_sysctl | dict2items }}"
+
+- name: Get a list of ethernet adapters
+  ansible.builtin.find:
+    path: /etc/sysconfig/network/
+    patterns: '^ifcfg-eth[0-9]*$'
+    recurse: false
+    use_regex: true
+  register: int_reg_eth_files
+  when: platform_azure
+
+- name: Ensure 'CLOUD_NETCONFIG_MANAGE' is disabled for eth0
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^CLOUD_NETCONFIG_MANAGE='
+    line: 'CLOUD_NETCONFIG_MANAGE="no"'
+    backup: true
+  loop: "{{ int_reg_eth_files.files }}"
+  when: platform_azure
+
+- name: Ensure haclient group exists
+  ansible.builtin.group:
+    name: 'haclient'
+    gid: 90
+    state: present
+
+- name: Ensure hacluster user exists
+  ansible.builtin.user:
+    name: 'hacluster'
+    uid: 90
+    group: 'haclient'
+    home: '/var/lib/heartbeat/cores/hacluster'
+    shell: '/bin/bash'
+    expires: -1
+    password: hacluster_password
+
+- name: Ensure that halcuster home directory has the correct permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: 'hacluster'
+    group: 'haclient'
+    mode: "{{ item.mode }}"
+    state: directory
+  loop:
+    - {'path': '/var/lib/heartbeat/cores/hacluster', 'mode': '0700'}
+    - {'path': '/var/lib/heartbeat/cores/hacluster/.ssh', 'mode': '0700'}
+
+- name: Generate public/private keys
+  community.crypto.openssh_keypair:
+    owner: 'hacluster'
+    group: 'haclient'
+    mode: '0600'
+    path: '/var/lib/heartbeat/cores/hacluster/.ssh/id_rsa'
+    type: rsa
+    size: 4096
+  register: int_reg_ssh_keys
+
+- name: Add public key to authorized_keys on all hosts
+  ansible.builtin.lineinfile:
+    path: '/var/lib/heartbeat/cores/hacluster/.ssh/authorized_keys'
+    line: "{{ hostvars[item].int_reg_ssh_keys.public_key }}"
+    create: true
+    mode: '0644'
+  loop: "{{ ansible_play_hosts }}"
+
+- name: Apply to Authorised Keys
+  ansible.posix.authorized_key:
+    user: 'hacluster'
+    state: present
+    key: "{{ hostvars[item].int_reg_ssh_keys.public_key }}"
+  loop: "{{ ansible_play_hosts }}"
+
+- name: Slurp ssh daemon public key
+  ansible.builtin.slurp:
+    src: '/etc/ssh/ssh_host_ecdsa_key.pub'
+  register: int_reg_ssh_pub_keys
+
+- name: Ensure hacluster's /.ssh/known_hosts contains ssh daemon public key
+  ansible.builtin.known_hosts:
+    path: '/var/lib/heartbeat/cores/hacluster/.ssh/known_hosts'
+    name: "{{ hostvars[idx]['ansible_hostname'] }}"
+    state: present
+    key: >-
+      {{ hostvars[idx]['ansible_hostname'] }},{{ hostvars[idx]['ansible_default_ipv4']['address'] }}
+      {{ (hostvars[idx].int_reg_ssh_pub_keys.content | b64decode | split(' '))[0] }}
+      {{ (hostvars[idx].int_reg_ssh_pub_keys.content | b64decode | split(' '))[1] }}
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: idx

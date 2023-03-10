@@ -1,0 +1,49 @@
+---
+# Ensure that all SBD devices are initialised. This should be done on one node
+# only.
+- name: Initialise SBD device/s
+  run_once: true
+  block:
+    - name: Probes SBD devices
+      ansible.builtin.command:
+        sbd -d {{ item | quote }} dump
+      loop: "{{ sbd_devices }}"
+      register: int_reg_sbd_probe
+      # This is a probe that makes no changes, so is safe for check_mode
+      changed_when: false
+      check_mode: false
+      # A non-zero rc tells us that the disk is not initialised, therefore, we
+      # need to continue if we gets errors!
+      failed_when: false
+
+    - name: Ensure that SBD device is initialised
+      ansible.builtin.command:
+        sbd -d {{ item.item | quote }} -1 60 -4 120 create
+      loop: "{{ int_reg_sbd_probe.results }}"
+      when: item.rc != 0
+
+- name: Add disks to sbd config file
+  ansible.builtin.lineinfile:
+    create: true
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+    path: /etc/sysconfig/sbd
+    regexp: '^SBD_DEVICE='
+    line: "SBD_DEVICE={{ sbd_devices | join(';') }}"
+
+# Add other required lines to the sdb config file and create
+- name: Set pacemaker and start mode in sbd config file
+  ansible.builtin.lineinfile:
+    create: true
+    path: /etc/sysconfig/sbd
+    owner: root
+    group: root
+    mode: '0644'
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - {'regexp': '^SBD_PACEMAKER=', 'line': 'SBD_PACEMAKER=yes'}
+    - {'regexp': '^SBD_STARTMODE=', 'line': 'SBD_STARTMODE=always'}
+    - {'regexp': '^SBD_DELAY_START=', 'line': 'SBD_DELAY_START=216'}
+    - {'regexp': '^SBD_WATCHDOG_TIMEOUT=', 'line': 'SBD_WATCHDOG_TIMEOUT=60'}

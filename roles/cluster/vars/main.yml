@@ -1,0 +1,31 @@
+---
+int_var_required_packages:
+  - 'corosync'
+  - 'crmsh'
+  - 'fence-agents'
+  - 'ha-cluster-bootstrap'
+  - 'pacemaker'
+  - 'patterns-ha-ha_sles'
+  - 'resource-agents'
+  - 'cluster-glue'
+  - 'socat'
+
+int_var_required_packages_azure:
+  - python3-azure-mgmt-compute
+  - python3-azure-identity
+
+int_var_required_services:
+  - 'logd.service'
+
+int_var_supported_platforms:
+  - 'azure'
+
+int_var_supported_stonith:
+  - 'sbd'
+
+int_var_sysctl:
+  vm.dirty_bytes: 629145600
+  vm.dirty_background_bytes: 314572800
+  vm.swappiness: 10
+
+int_var_azure_cluster_state: /var/lib/sles-for-sap-roles/.azure_cluster
