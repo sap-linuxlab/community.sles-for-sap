@@ -24,7 +24,31 @@
     - int_fact_saptune_solution_configured != solution
     - int_fact_saptune_solution_configured != 'NONE'
 
+# If this is a cluster node on Azure, we need to override to disable tcp
+# timestamps, reuse and recycle. This can be done by copying the sapnote file
+# 2382421 from /usr/share/saptune/notes to /etc/saptune/override. The value can
+# then override in the in the new file
+
+- name: Disable TCP timestamps, recycle & reuse on azure
+  ansible.builtin.blockinfile:
+    path: /etc/saptune/override/2382421
+    create: true
+    backup: true
+    owner: root
+    group: root
+    mode: '0640'
+    marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+    block: |
+     [sysctl]
+     net.ipv4.tcp_timestamps = 0
+     net.ipv4.tcp_tw_reuse = 0
+     net.ipv4.tcp_tw_recycle = 0
+  register: int_reg_azure_tcp
+  when:
+    - clustered
+    - platform == 'azure'
+
 - name: Ensure that required solution is applied
   ansible.builtin.command: "saptune solution apply {{ solution }}"
   when:
-    - int_fact_saptune_solution_configured != solution
+    int_fact_saptune_solution_configured != solution

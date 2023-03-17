@@ -1,0 +1,41 @@
+---
+int_var_required_packages:
+  - 'corosync'
+  - 'crmsh'
+  - 'fence-agents'
+  - 'ha-cluster-bootstrap'
+  - 'pacemaker'
+  - 'patterns-ha-ha_sles'
+  - 'resource-agents'
+  - 'cluster-glue'
+  - 'socat'
+  - 'libxml2-tools'
+  - 'ClusterTools2'
+  - 'SAPHanaSR'
+
+int_var_min_package_version:
+  - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
+  - { 'pkg': 'socat', 'version': '1.7.3.2' }
+  - { 'pkg': 'ClusterTools2', 'version': '3.1.2' }
+  - { 'pkg': 'libxml2-tools', 'version': '2.9.14' }
+
+int_var_required_packages_azure:
+  - python3-azure-mgmt-compute
+  - python3-azure-identity
+
+int_var_required_services:
+  - 'logd.service'
+
+int_var_supported_platforms:
+  - 'azure'
+
+int_var_supported_stonith:
+  - 'sbd'
+
+int_var_sysctl:
+  vm.dirty_bytes: 629145600
+  vm.dirty_background_bytes: 314572800
+  vm.swappiness: 10
+
+int_var_state_dir: '/var/lib/sles-for-sap-roles'
+int_var_cluster_state: /var/lib/sles-for-sap-roles/.azure_cluster

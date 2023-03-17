@@ -9,6 +9,23 @@
     success_msg: >-
       The variable 'solution' is set.
 
+- name: Assert that platform is set correctly
+  ansible.builtin.assert:
+    that: platform in int_var_supported_platforms
+    fail_msg: >-
+      The variable 'platform' must be either 'default' or 'azure'.
+    success_msg: >-
+      The variable 'platform' is set correctly.
+
+- name: Assert that 'clustered' is set correctly
+  ansible.builtin.assert:
+    that: clustered is boolean
+    fail_msg: >-
+      The variable 'clustered' is not set as a boolean, set this is true or
+      false only!
+    success_msg: >-
+      The variable 'clustered' is set correctly.
+
 - name: Collect package facts
   ansible.builtin.package_facts:
 

@@ -1,0 +1,121 @@
+---
+# Load Azure variables when using azure
+- name: Load Azure corosync variables
+  ansible.builtin.include_vars: azure_corosync.yml
+  when: platform_azure
+
+# A cluster requires the same authkey to be present on all nodes, the next
+# three tasks collect the authkey data and ascertain whether or not a new
+# needs to be created and distributed.
+
+- name: Register authkey status
+  ansible.builtin.stat:
+    path: /etc/corosync/authkey
+  register: int_reg_authkey
+
+- name: Set authkey facts
+  ansible.builtin.set_fact:
+    sum: "{{ int_reg_authkey.stat.checksum | default('no_sum') }}"
+    reg: "{{ int_reg_authkey.stat.isreg | default('false') }}"
+
+- name: Set authkey json data
+  ansible.builtin.set_fact:
+    int_fact_authkey_data: "{{
+      ansible_play_hosts |
+      map('extract', hostvars) |
+      list |
+      json_query(q1)
+      }}"
+  run_once: true
+  vars:
+    q1: '[].{host: ansible_hostname,isreg: reg,cryptosum: sum }'
+
+- name: Set authkey update fact
+  ansible.builtin.set_fact:
+    int_fact_authkey_change: "{{
+        int_fact_authkey_data |
+        json_query('[].cryptosum') |
+        unique |
+        length != 1
+        or
+        int_fact_authkey_data |
+        json_query ('[?isreg==`false`]') |count > 0
+      }}"
+
+- name: Check if template write will make changes
+  ansible.builtin.template:
+    src: azure_corosync.j2
+    dest: /etc/corosync/corosync.conf
+    owner: root
+    group: root
+    mode: '0600'
+  check_mode: true
+  register: int_fact_template_check
+  when: platform_azure
+
+- name: Set corosync facts
+  ansible.builtin.set_fact:
+    int_fact_write_corosync: "{{ int_fact_template_check.changed }}"
+
+- name: Set corosync json data
+  ansible.builtin.set_fact:
+    int_fact_corosync_data: "{{
+      ansible_play_hosts |
+      map('extract', hostvars) |
+      list |
+      json_query(q1) }}"
+  run_once: true
+  vars:
+    q1: '[].{host: ansible_hostname,write_corosync: int_fact_write_corosync}'
+
+- name: Set corosync update fact
+  ansible.builtin.set_fact:
+    int_fact_corosync_change: "{{
+       int_fact_corosync_data |
+       json_query(q1) |
+       count > 0
+      }}"
+  vars:
+    q1: '[?write_corosync==`true`]'
+
+- name: Write authkey file
+  when: int_fact_authkey_change
+  # notify: Start pacemaker
+  block:
+    - name: Stop pacemaker
+      ansible.builtin.systemd:
+        service: pacemaker
+        state: stopped
+
+    - name: Create cluster secret
+      ansible.builtin.command: corosync-keygen
+      # only do this on one node (doesn't matter which) and sync the results
+      # to the others
+      when: int_var_node_is_primary
+
+    - name: Copy cluster secret to other hosts
+      ansible.posix.synchronize:
+        src: /etc/corosync/authkey
+        dest: /etc/corosync/authkey
+        owner: true
+        perms: true
+        mode: push
+        set_remote_user: false
+      delegate_to: "{{ primary }}"
+      when: inventory_hostname != primary
+
+- name: Write azure corosync file
+  when: int_fact_corosync_change
+  # notify: Start pacemaker
+  block:
+    - name: Ensure corosync.conf is populated
+      ansible.builtin.template:
+        src: azure_corosync.j2
+        dest: /etc/corosync/corosync.conf
+        owner: root
+        group: root
+        mode: '0600'
+      when: platform_azure
+
+# - name: Flush handlers
+#   ansible.builtin.meta: flush_handlers

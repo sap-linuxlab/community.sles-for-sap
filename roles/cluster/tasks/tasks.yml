@@ -1,0 +1,57 @@
+---
+
+# Check for cluster configured file
+# Until clustering support is improved, the configuration is one-shot. on
+# successful completion of clustering, a state file is written, if the file is
+# found when the role is run, all tasks are skipped.
+- name: Check for cluster state file
+  ansible.builtin.stat:
+    path: "{{ int_var_cluster_state }}"
+  register: int_reg_cluster_stat
+
+- name: Set configuration status flag
+  ansible.builtin.set_fact:
+    int_fact_cluster_configured: "{{
+       int_reg_cluster_stat.stat.exists
+     }}"
+
+- name: Show actions
+  ansible.builtin.debug:
+    msg: >-
+      {% if int_fact_cluster_configured == true %}Cluster is already
+      configured, no action will be completed.
+      {% else %}No cluster configuration found. Cluster configuration will be
+      completed
+      {% endif %}
+
+- name: Show platform and STONITH
+  ansible.builtin.debug:
+    msg: "Platform:{{ platform }}, STONITH:{{ stonith }}"
+  when: not int_fact_cluster_configured
+
+- name: Run cluster prerequisite tasks
+  ansible.builtin.include_tasks: tasks_pre_cluster.yml
+  when: not int_fact_cluster_configured
+
+- name: Run sbd tasks
+  ansible.builtin.include_tasks: tasks_sbd_preconfigure.yml
+  when:
+    - stonith_sbd
+    - not int_fact_cluster_configured
+
+- name: Run watchdog tasks
+  ansible.builtin.include_tasks: tasks_sbd_watchdog.yml
+  when:
+    - stonith_sbd
+    - not int_fact_cluster_configured
+
+- name: Create corosysnc configuration
+  ansible.builtin.include_tasks: tasks_corosync_configuration.yml
+  when: not int_fact_cluster_configured
+
+- name: Configure HANA cluster on Azure HANA using SBD
+  ansible.builtin.include_tasks: tasks_azure_hana_cluster.yml
+  when:
+    - platform_azure
+    - stonith_sbd
+    - not int_fact_cluster_configured

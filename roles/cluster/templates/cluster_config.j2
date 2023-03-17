@@ -1,0 +1,132 @@
+{% for ok, ov in int_fact_cluster_config.items() %}
+{% if ok == 'properties' and ok | length >= 0 %}
+property cib-bootstrap-options: \
+{% for k, v in ov.items() %}
+{% if loop.first %}
+  {{ k }}="{{ v }}"
+{%- else %}
+  {{ k }}="{{ v }}"
+{%- endif %}
+{%- if not loop.last %} \  
+{% endif %}
+{% endfor %}
+{% endif %}
+  
+{% if ok == 'op_defaults' and ok | length >= 0 %}
+op_defaults op-options: \
+{% for k, v in ov.items() %}
+{% if loop.first %}
+  {{ k }}="{{ v }}"
+{%- else %}
+  {{ k }}="{{ v }}"
+{%- endif %}
+{%- if not loop.last %} \  
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if ok == 'rsc-options' and ok | length >= 0 %}
+rsc_defaults rsc-options: \
+{% for k, v in ov.items() %}
+{% if loop.first %}
+  {{ k }}="{{ v }}"
+{%- else %}
+  {{ k }}="{{ v }}"
+{%- endif %}
+{%- if not loop.last %} \  
+{% endif %}
+{% endfor %}
+
+{% elif ok == 'primitives' and ok | length >= 0 %}
+{% for k, v in ov.items() %}
+{% if v.args is defined %}
+primitive {{ v.primitive_name}} {{ v.type }} {{ v.args }} \
+{% else %}
+primitive {{ v.primitive_name}} {{ v.type }} \
+{% endif %}
+{% for ik, iv in v.items() %}
+{% set outer = loop %}
+{% if ik !=  'primitive_name' and ik != 'type' and ik != 'args' %}
+  {{ iv.name }}
+{%- for ak, av in iv.items() %}
+{%- if ak != 'name' %}
+ {{ ak }}="{{ av }}"
+{%- if loop.last and not outer.last %} \
+{% elif loop.last and outer.last %}  
+
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif%}
+{% endfor %}
+{% endfor %}
+{% elif ok == 'clones' and ok | length >= 0 %}
+{% for k, v in ov.items() %}
+{% if v | length == 2 %}
+clone {{ v.clone_name}} {{ v.clone }}
+
+{% else %}
+clone {{ v.clone_name}} {{ v.clone }} \
+{% endif %}
+{% for ik, iv in v.items() %}
+{% set outer = loop %}
+{% if ik !=  'clone_name' and ik != 'clone' %}
+  {{ iv.name }}
+{%- for ak, av in iv.items() %}
+{%- if ak != 'name' %}
+ {{ ak }}="{{ av }}"
+{%- if loop.last and not outer.last %} \
+{% elif loop.last and outer.last %}
+
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% elif ok == 'mss' and ok | length >= 0 %}
+{% for k, v in ov.items() %}
+ms {{ v.ms_name }} {{ v.resource }} \
+{% for ik, iv in v.items() %}
+{% set outer = loop %}
+{%- if ik !=  'ms_name' and ik != 'resource' %}
+  {{ iv.name }}  
+{%- for ak, av in iv.items() %}
+{%- if ak != 'name' %}
+ {{ ak }}="{{ av }}"
+{%- if loop.last and not outer.last %} \
+{%- elif loop.last and outer.last %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %} 
+{%- endfor %}
+{% endfor %}
+
+{% elif ok == 'groups' and ok | length >= 0 %}
+{% for k, v in ov.items() %}
+group {{ v.group_name }}
+{%- for gm in v.members %}
+ {{ gm }}
+{%- endfor %}
+{% endfor %}
+
+{% elif ok == 'colocations' and ok | length >= 0 %}
+{% for k, v in ov.items() %}
+colocation {{ v.colo_name }} {{ v.score }}:
+{%- for cm in v.members %}
+ {{ cm }}
+{%- endfor %}
+{% endfor %}
+
+{% elif ok == 'orders' and ok | length >= 0 %}
+{% for k, v in ov.items() %}
+
+order {{ v.order_name }} {{ v.kind}}:
+{%- for om in v.members %}
+ {{ om }}
+{%- endfor %}
+{% endfor %}
+{% endif %}
+{% endfor %}

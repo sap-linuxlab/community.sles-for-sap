@@ -2,3 +2,7 @@
 int_conflicting_services:
   - sapconf
   - tuned
+
+int_var_supported_platforms:
+  - 'default'
+  - 'azure'

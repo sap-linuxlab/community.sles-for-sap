@@ -30,11 +30,16 @@
   when: int_fact_hana_installed
   check_mode: false
 
+- name: Debug
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ int_reg_hana_post_install_ps.stdout_lines }}"
+
 - name: Create process list fact
   ansible.builtin.set_fact:
     int_fact_running_processes: "{{
       int_fact_running_processes |
-      default([]) + [item | regex_findall('[A-Za-z0-9]+$|[A-Za-z0-9]+ ', '\\1') |
+      default([]) + [item | regex_findall('[A-Za-z0-9]+$|[A-Za-z0-9]+ |[(][A-Za-z0-9-]+[)]', '\\1') |
       first |
       trim]
       }}"

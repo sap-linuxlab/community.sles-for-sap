@@ -1,0 +1,9 @@
+primitive {{ int_fact_primitive.name }} {{ int_fact_primitive.type }} \
+{% for key, value in int_fact_primitive.items() %}
+{% if key != 'name' and key != 'type' %}
+{{ value.name }} {% for k, v in value.items() %}
+{% if k != 'name'%}{{ k }}={{ v }}
+{% endif %}
+{% endfor %} \
+{% endif %}
+{% endfor %}

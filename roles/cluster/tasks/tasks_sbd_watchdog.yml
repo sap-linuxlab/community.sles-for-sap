@@ -1,0 +1,25 @@
+---
+# Watchdog configuration tasks go here!
+# A watchdog is needed for SBD.
+
+# For Azure, softdog is used, which is not great,
+# but better than nothing. Other watchdogs for other platforms will need to be
+# added we go.
+
+- name: Ensure softdog is configured
+  ansible.builtin.lineinfile:
+    create: true
+    path: /etc/modules-load.d/softdog.conf
+    owner: root
+    group: root
+    mode: '0644'
+    regexp: '^softdog'
+    line: 'softdog'
+  when: platform_azure
+
+# Ensure the module is loaded.
+- name: Ensure the softdog module is loaded.
+  community.general.modprobe:
+    name: softdog
+    state: present
+  when: platform_azure

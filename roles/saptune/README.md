@@ -25,6 +25,14 @@ The following variable is mandatory:
 
 A list of possible solutions can be gathered by running `saptune solution list`.
 
+### Optional variables
+
+* platform - specifies the platform of the solution which may be required for
+  some specific overrides. Supported values are 'azure' and 'default'. Default
+  is default.
+* clustered - boolean value that specifies if the systems are clustered or not.
+  Some clustered systems required sepecific overrides. Default is 'false'.
+
 ## Pitfalls
 
 Like the role, saptune will not add, update or remove packages to your
@@ -41,5 +49,5 @@ host and record the output.
 This role supports check mode.  Check mode demonstrate the actions that will be
 taken if the role were to be run.  As no ansible modules for SLES registration
 exist, a lot of the role relies on using the `ansible.builtin.command` module,
-which fully support check mode.  However, the task `Print required action` will provide
-a good summary of the action the role would take if run normally.
+which fully support check mode.  However, the task `Print required action` will
+provide a good summary of the action the role would take if run normally.
