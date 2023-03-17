@@ -6,6 +6,9 @@ cluster_config:
   op_defaults:
     timeout: '600'
     record-pending: 'true'
+  rsc-options:
+    resource-stickiness: '1000'
+    migration-threshold: '5000'
   primitives:
     stonith_sbd:
       primitive_name: 'stonith-sbd'
@@ -32,7 +35,7 @@ cluster_config:
         InstanceNumber: "{{ hana_instance_number }}"
       operations:
         name: 'operations'
-        '$id': "rsc_sap2_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations"
+        '\$id': "rsc_sap2_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations"
       op_monitor:
         name: 'op monitor'
         interval: '10'
@@ -50,7 +53,7 @@ cluster_config:
       type: "ocf:suse:SAPHana"
       operations:
         name: 'operations'
-        '$id': "rsc_sap_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations"
+        '\$id': "rsc_sap_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations"
       op_start:
         name: 'op start'
         interval: '0'
@@ -86,9 +89,9 @@ cluster_config:
       meta:
         name: 'meta'
         target-role: 'Started'
-      operations:
-        name: 'operations'
-        '$id': 'rsc_ip_HN1_HDB03-operations'
+#      operations:
+#        name: 'operations'
+#        '\$id': 'rsc_ip_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations'
       op_monitor:
         name: 'op monitor'
         interval: '10s'

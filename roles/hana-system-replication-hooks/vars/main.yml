@@ -1,6 +1,15 @@
 ---
 int_var_required_packages:
   - 'SAPHanaSR'
+  - 'socat'
+  - 'ClusterTools2'
+  - 'libxml2-tools'
+
+int_var_min_package_version:
+  - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
+  - { 'pkg': 'socat', 'version': '1.7.3.2' }
+  - { 'pkg': 'ClusterTools2', 'version': '3.1.2' }
+  - { 'pkg': 'libxml2-tools', 'version': '2.9.14' }
 
 int_var_required_files:
   - '/usr/share/SAPHanaSR/SAPHanaSR.py'

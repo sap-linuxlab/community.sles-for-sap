@@ -1,1 +1,86 @@
 ---
+# Some tasks to check that the cluster is OK
+- name: Check pacemaker is running on all nodes
+  ansible.builtin.systemd:
+    service: pacemaker
+    state: started
+  check_mode: true
+  changed_when: false
+  register: int_reg_pacemaker_started
+  when: int_fact_cluster_configured
+
+- name: Assert that pacemaker is started
+  ansible.builtin.assert:
+    that: int_reg_pacemaker_started.status.ActiveState == 'active'
+    fail_msg: >-
+      The pacemaker service does not appear to be started, this suggests that
+      the cluster is not working correctly.
+    success_msg: >-
+      The pacemaker service is running as expected.
+  when: int_fact_cluster_configured
+
+- name: Run 'crm status'
+  ansible.builtin.command:
+    crm status
+  changed_when: false
+  failed_when: false
+  register: int_reg_crm_status
+  when: int_fact_cluster_configured
+
+- name: Assert that 'crm status' runs cleanly
+  ansible.builtin.assert:
+    that: int_reg_crm_status.rc == 0
+    fail_msg: >-
+      The command 'crm status' returned a non-zero return code. This suggests
+      that cluster is not working as expected. The expected return code was 0,
+      but we got nt_reg_crm_status.rc.
+    success_msg: >-
+      The command 'crm status' produced a return code of 0 as expected.
+
+# The cluster should no longer be in maintenance mode
+- name: Get cluster maintenance status
+  ansible.builtin.command:
+    crm configure show cib-bootstrap-options
+  register: int_reg_cib_boot
+  changed_when: false
+
+- name: Assert that the cluster is not in maintenance mode
+  ansible.builtin.assert:
+    that: >-
+      not (int_reg_cib_boot.stdout |
+      ansible.builtin.regex_search('maintenance-mode=[a-z]*') |
+      split('=') |
+      last |
+      bool)
+    fail_msg: >-
+      The cluster appears to be in maintenance mode. This suggests that the
+      cluster was not configured as expected.
+    success_msg: >-
+      The cluster is not in maintenance mode.
+
+# There should no no failed or stopped resources
+# Skipping for now, this needs to be enhanced.
+
+# The hana systemdb port on the VIP should be accessible from both HANA hosts
+# The hana systemdb port is 3{{ hana_instance_number }}13
+
+- name: Check for hana systemdb port on vip
+  ansible.builtin.wait_for:
+    host: "{{ virtual_ip }}"
+    port: "3{{ hana_instance_number }}13"
+    timeout: 10
+  register: int_reg_wait_for_vip
+  ignore_errors: true
+  changed_when: false
+
+- name: Assert that hana systemdb port is reachable on virtual IP address
+  ansible.builtin.assert:
+    that: not int_reg_wait_for_vip.failed
+    fail_msg: >-
+      The HANA systemdb port (3{{ hana_instance_number }}13), was not reachable.
+      It is expected that each host should be able to used the HANA virtual IP
+      address. This suggests that there maybe a problem with the cluster or the
+      underlying firewall or routing policies.
+    success_msg: >-
+      The HANA systemdb port (3{{ hana_instance_number }}13) was reachable on
+      the virtual IP address ({{ virtual_ip }}).

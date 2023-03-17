@@ -55,6 +55,17 @@
       The required package {{ item }} is installed
   loop: "{{ int_var_required_packages_azure }}"
 
+- name: Assert that required packages meet minimum required versions
+  ansible.builtin.assert:
+    that: "{{ ansible_facts['packages'][item.pkg][0].version is version(item.version), '>=' }}"
+    fail_msg: >-
+      The installed package '{{ item.pkg }}' is below the required version of
+      '{{ item.version }}'. Upgrade the to at least this version before running
+      this role.
+    success_msg: >-
+      The package '{{ item.pkg }}' meets the minimum required version.
+  loop: "{{ int_var_min_package_version }}"
+
 - name: Collect service information
   ansible.builtin.service_facts:
 

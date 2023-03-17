@@ -1,9 +1,9 @@
 {% for ok, ov in int_fact_cluster_config.items() %}
 {% if ok == 'properties' and ok | length >= 0 %}
-property
-{%- for k, v in ov.items() %}
-{%- if loop.first %}
- {{ k }}="{{ v }}"
+property cib-bootstrap-options: \
+{% for k, v in ov.items() %}
+{% if loop.first %}
+  {{ k }}="{{ v }}"
 {%- else %}
   {{ k }}="{{ v }}"
 {%- endif %}
@@ -13,7 +13,20 @@ property
 {% endif %}
   
 {% if ok == 'op_defaults' and ok | length >= 0 %}
-op_defaults op-options \
+op_defaults op-options: \
+{% for k, v in ov.items() %}
+{% if loop.first %}
+  {{ k }}="{{ v }}"
+{%- else %}
+  {{ k }}="{{ v }}"
+{%- endif %}
+{%- if not loop.last %} \  
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if ok == 'rsc-options' and ok | length >= 0 %}
+rsc_defaults rsc-options: \
 {% for k, v in ov.items() %}
 {% if loop.first %}
   {{ k }}="{{ v }}"
