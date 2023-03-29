@@ -1,6 +1,6 @@
 # SLES for SAP Ansible Roles
 
-![markdown badge](https://github.com/mr-stringer/sles-for-sap-roles/actions/workflows/markdown-lint.yml/badge.svg)
+![markdown badge](https://github.com/sap-linuxlab/community.sles-for-sap/actions/workflows/markdown-lint.yml/badge.svg)
 
 This collection of roles is currently in development
 
