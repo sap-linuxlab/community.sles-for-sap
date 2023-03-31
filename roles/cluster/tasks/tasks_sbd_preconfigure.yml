@@ -42,8 +42,4 @@
     mode: '0644'
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
-  loop:
-    - {'regexp': '^SBD_PACEMAKER=', 'line': 'SBD_PACEMAKER=yes'}
-    - {'regexp': '^SBD_STARTMODE=', 'line': 'SBD_STARTMODE=always'}
-    - {'regexp': '^SBD_DELAY_START=', 'line': 'SBD_DELAY_START=216'}
-    - {'regexp': '^SBD_WATCHDOG_TIMEOUT=', 'line': 'SBD_WATCHDOG_TIMEOUT=60'}
+  loop: "{{ int_var_sbd_config }}"

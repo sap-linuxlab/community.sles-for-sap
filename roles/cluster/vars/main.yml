@@ -13,6 +13,7 @@ int_var_required_packages:
   - 'ClusterTools2'
   - 'SAPHanaSR'
 
+# this is a SLES 15 SP4 list - may need to alterations for older versions
 int_var_min_package_version:
   - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
   - { 'pkg': 'socat', 'version': '1.7.3.2' }
@@ -28,9 +29,11 @@ int_var_required_services:
 
 int_var_supported_platforms:
   - 'azure'
+  - 'gcp'
 
 int_var_supported_stonith:
   - 'sbd'
+  - 'native'
 
 int_var_sysctl:
   vm.dirty_bytes: 629145600
@@ -39,3 +42,15 @@ int_var_sysctl:
 
 int_var_state_dir: '/var/lib/sles-for-sap-roles'
 int_var_cluster_state: /var/lib/sles-for-sap-roles/.azure_cluster
+
+int_var_sbd_config:
+  - {'regexp': '^SBD_PACEMAKER=', 'line': 'SBD_PACEMAKER=yes'}
+  - {'regexp': '^SBD_STARTMODE=', 'line': 'SBD_STARTMODE=always'}
+  - {'regexp': '^SBD_DELAY_START=', 'line': 'SBD_DELAY_START=216'}
+  - {'regexp': '^SBD_WATCHDOG_TIMEOUT=', 'line': 'SBD_WATCHDOG_TIMEOUT=60'}
+
+int_var_cluster_config: '/tmp/cluster_config'
+
+# Some GC specific vars
+int_var_gcli_path: '/root/.gcp/'
+int_var_gcli_tools_url: 'https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-423.0.0-linux-x86_64.tar.gz'

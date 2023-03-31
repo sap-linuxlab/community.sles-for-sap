@@ -23,7 +23,7 @@
   ansible.builtin.command:
     crm status
   changed_when: false
-  failed_when: false
+  ignore_errors: true
   register: int_reg_crm_status
   when: int_fact_cluster_configured
 
@@ -36,6 +36,7 @@
       but we got nt_reg_crm_status.rc.
     success_msg: >-
       The command 'crm status' produced a return code of 0 as expected.
+  when: int_fact_cluster_configured
 
 # The cluster should no longer be in maintenance mode
 - name: Get cluster maintenance status
@@ -57,6 +58,7 @@
       cluster was not configured as expected.
     success_msg: >-
       The cluster is not in maintenance mode.
+  when: int_fact_cluster_configured
 
 # There should no no failed or stopped resources
 # Skipping for now, this needs to be enhanced.
@@ -72,6 +74,9 @@
   register: int_reg_wait_for_vip
   ignore_errors: true
   changed_when: false
+  when:
+    - int_fact_cluster_configured
+    - not platform_gcp
 
 - name: Assert that hana systemdb port is reachable on virtual IP address
   ansible.builtin.assert:
@@ -84,3 +89,6 @@
     success_msg: >-
       The HANA systemdb port (3{{ hana_instance_number }}13) was reachable on
       the virtual IP address ({{ virtual_ip }}).
+  when:
+    - int_fact_cluster_configured
+    - not platform_gcp

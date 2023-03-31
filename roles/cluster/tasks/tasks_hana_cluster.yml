@@ -1,17 +1,34 @@
 ---
 # Load the required variables for this scenario
-- name: Include scenario variables
+- name: Include hana azure sbd cluster_config
   ansible.builtin.include_vars: azure_sbd.yml
+  when:
+    - platform_azure
+    - stonith_sbd
 
-- name: Set cluster configuration facts
-  ansible.builtin.set_fact:
-    int_fact_cluster_config: "{{ cluster_config }}"
-    int_fact_cluster_config_file_name: "/tmp/ansible_{{ lookup('community.general.random_string', length=12, special=false) }}"
+- name: Include hana azure native cluster_config
+  ansible.builtin.include_vars: azure_native.yml
+  when:
+    - platform_azure
+    - stonith_native
 
+- name: Include hana gcp native cluster_config
+  ansible.builtin.include_vars: gcp_native.yml
+  when:
+    - platform_gcp
+
+- name: Ensure logd is enabled and started
+  ansible.builtin.systemd:
+    name: logd
+    state: started
+    enabled: true
+
+# The cluster configuration file is stored on the primary node, it may not be
+# a bad idea to have an option to remove this.
 - name: Write the pacemaker configuration
   ansible.builtin.template:
     src: cluster_config.j2
-    dest: "{{ int_fact_cluster_config_file_name }}"
+    dest: "{{ int_var_cluster_config }}"
     owner: root
     group: root
     mode: '0400'
@@ -25,7 +42,9 @@
 - name: Configure sbd
   ansible.builtin.command:
     "crm cluster init sbd -y -s {{ sbd_devices | join(',') }}"
-  when: int_var_node_is_primary
+  when:
+    - int_var_node_is_primary
+    - stonith_sbd
 
 - name: Start the cluster on primary
   ansible.builtin.command:
@@ -52,6 +71,7 @@
   ansible.builtin.systemd:
     service: 'sbd'
     enabled: true
+  when: stonith_sbd
 
 - name: Start the cluster on non-primary node/s
   ansible.builtin.command:
@@ -100,12 +120,11 @@
     - name: Print load average result
       ansible.builtin.debug:
         msg: >-
-          {% if int_reg_loadavg.failed %}
-          Waited for 1m load average to fall below {{ int_fact_ldavg_target }}
+          {% if int_reg_loadavg.failed %}Waited for 1m load average to fall
+          below {{ int_fact_ldavg_target }}
           but it is currently {{ int_reg_loadavg.stdout | split() | first }}.
           This may lead to problems configuring the HANA cluster resource.
-          {% else %}
-          The load average reached an acceptable level
+          {% else %}The load average reached an acceptable level
           {{ int_reg_loadavg.stdout | split() | first }}
           {% endif %}
 
@@ -116,7 +135,7 @@
 
 - name: Load the cluster config
   ansible.builtin.command:
-    "crm configure load update {{ int_fact_cluster_config_file_name }}"
+    "crm configure load update {{ int_var_cluster_config }}"
   when: int_var_node_is_primary
 
 - name: Leave cluster maintenance mode
@@ -124,79 +143,37 @@
     crm configure property maintenance-mode=false
   when: int_var_node_is_primary
 
-- name: Wait to see if HANA resource needs cleaning up
+# cs_wait_for_idle will poll the cluster every 5 seconds to ensure the cluster
+# is ready for another command
+- name: Put the HANA master-slave resource into maintenance mode
   ansible.builtin.command:
-    crm_mon -1 --resource=rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}
-  register: int_reg_rsc_hana_status
-  until: int_reg_rsc_hana_status.stdout is ansible.builtin.regex('Failed Resource Actions:')
-  delay: 10
-  retries: 10
-  failed_when: false
+    "crm resource maintenance msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }} on"
+  when: int_var_node_is_primary
+
+- name: Wait for cluster idle
+  ansible.builtin.command:
+    cs_wait_for_idle --sleep 5
   changed_when: false
   when: int_var_node_is_primary
 
-- name: Print Actions
-  ansible.builtin.debug:
-    msg: >-
-      {% if int_reg_rsc_hana_status.stdout is ansible.builtin.regex('Failed Resource Actions:') %}
-      HANA resource clean up required
-      {% else %}
-      HANA resource clean up not required
-      {% endif %}
+- name: Refresh the master-slave resource
+  ansible.builtin.command:
+    "crm resource refresh msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}"
   when: int_var_node_is_primary
 
-- name: Cleanup HANA resource if needed
+- name: Wait for cluster idle
   ansible.builtin.command:
-    "crm resource cleanup rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}"
-  when:
-    - int_var_node_is_primary
-    - int_reg_rsc_hana_status.stdout is ansible.builtin.regex('Failed Resource Actions:')
-
-# Allow cleanup command to be registered, delegate to first node in play
-- name: Pause so that the command can start
-  ansible.builtin.wait_for:
-    timeout: 10
-  when:
-    - int_var_node_is_primary
-    - int_reg_rsc_hana_status.stdout is ansible.builtin.regex('Failed Resource Actions:')
-
-- name: Wait to see if HANA resource needs clean up was successful
-  ansible.builtin.command:
-    crm_mon -1 --resource=rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}
-  register: int_reg_crm_status_cleanup
-  until: not (int_reg_crm_status_cleanup.stdout is ansible.builtin.regex('Failed Resource Actions:'))
-  delay: 10
-  retries: 10
+    cs_wait_for_idle --sleep 5
   changed_when: false
-  ignore_errors: true
-  when:
-    - int_var_node_is_primary
-    - int_reg_rsc_hana_status.stdout is ansible.builtin.regex('Failed Resource Actions:')
+  when: int_var_node_is_primary
 
-- name: Fail if clean up was run but was not successful
-  ansible.builtin.fail:
-    msg: "The cleanup of resource rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }} failed"
-  when:
-    - int_var_node_is_primary
-    - int_reg_rsc_hana_status.stdout is ansible.builtin.regex('Failed Resource Actions:')
-    - int_reg_crm_status_cleanup.stdout is ansible.builtin.regex('Failed Resource Actions:')
+- name: Remove the HANA master-slave resource from maintenance mode
+  ansible.builtin.command:
+    "crm resource maintenance msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }} off"
+  when: int_var_node_is_primary
 
-- name: Create state directory
-  ansible.builtin.file:
-    path: "{{ int_var_state_dir }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0700'
-
-- name: Create state file
-  ansible.builtin.file:
-    path: "{{ int_var_cluster_state }}"
-    state: touch
-    owner: root
-    group: root
-    mode: '0600'
-
-- name: Set cluster configured fact
-  ansible.builtin.set_fact:
-    int_fact_azure_cluster_configured: true
+- name: Wait for cluster idle
+  ansible.builtin.command:
+    cs_wait_for_idle --sleep 5
+  changed_when: false
+  when: int_var_node_is_primary

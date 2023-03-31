@@ -17,9 +17,7 @@
     owner: 'root'
     group: 'root'
     mode: '0700'
-  when:
-    - int_fact_ssh_required
-    - not ansible_check_mode
+  when: not ansible_check_mode
 
 - name: Generate public/private keys
   community.crypto.openssh_keypair:
@@ -30,9 +28,7 @@
     type: rsa
     size: 4096
   register: ssh_keys
-  when:
-    - int_fact_ssh_required
-    - not ansible_check_mode
+  when: not ansible_check_mode
 
 - name: Add public key to authorized_keys on all hosts
   ansible.builtin.lineinfile:
@@ -41,9 +37,7 @@
     create: true
     mode: '0600'
   loop: "{{ ansible_play_hosts }}"
-  when:
-    - int_fact_ssh_required
-    - not ansible_check_mode
+  when: not ansible_check_mode
 
 - name: Apply to Authorised Keys
   ansible.posix.authorized_key:
@@ -51,16 +45,13 @@
     state: present
     key: "{{ hostvars[item].ssh_keys.public_key }}"
   loop: "{{ ansible_play_hosts }}"
-  when:
-    - int_fact_ssh_required
-    - not ansible_check_mode
+  when: not ansible_check_mode
+
 - name: Slurp ssh daemon public key
   ansible.builtin.slurp:
     src: '/etc/ssh/ssh_host_ecdsa_key.pub'
   register: int_reg_ssh_pub_keys
-  when:
-    - int_fact_ssh_required
-    - not ansible_check_mode
+  when: not ansible_check_mode
 
 - name: Ensure /root/.ssh/known_hosts contains ssh daemon public key
   ansible.builtin.known_hosts:
@@ -74,12 +65,9 @@
   loop: "{{ ansible_play_hosts }}"
   loop_control:
     loop_var: idx
-  when:
-    - int_fact_ssh_required
-    - not ansible_check_mode
-
+  when: not ansible_check_mode
 
 - name: Set ssh required to false
   ansible.builtin.set_fact:
-    int_fact_ssh_required: false
+    int_fact_configured: true
   when: not ansible_check_mode

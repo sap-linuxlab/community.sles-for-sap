@@ -14,6 +14,16 @@
     - 'virtual_ip'
     - 'hacluster_password'
 
+- name: Assert that there are only two nodes in the play
+  ansible.builtin.assert:
+    that: ansible_play_hosts | length == 2
+    fail_msg: >-
+      There are {{ ansible_play_hosts | length }} hosts in this play. This role
+      supports 2 nodes only. Ensure that there are only two nodes in this play
+      before running again.
+    success_msg: >-
+      Found the expected 2 nodes.
+
 - name: Assert that primary variable matches a node in the play
   ansible.builtin.assert:
     that: >-
@@ -29,6 +39,34 @@
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ primary == inventory_hostname }}"
   check_mode: false
+
+- name: Set primary and secondary hostname facts
+  ansible.builtin.set_fact:
+    int_fact_primary_hostname: "{{ primary }}"
+    int_fact_secondary_hostname: "{{ ansible_play_hosts | reject('equalto', primary) | first }}"
+
+# In some circumstances, the stonith primitive needs to map linux hostnames to
+# the name of the device is needs to kill. This is done host map. If the user
+# provides computer names, they are loaded into facts below, otherwise, the
+# hostnames are used.
+- name: Set up computer names
+  ansible.builtin.set_fact:
+    int_fact_primary_computer_name: "{{ primary_computer_name | default(int_fact_primary_hostname) }}"
+    int_fact_secondary_computer_name: "{{ secondary_computer_name | default(int_fact_secondary_hostname) }}"
+
+- name: Assert that the platform is supported
+  ansible.builtin.assert:
+    that: "'{{ platform }}' in int_var_supported_platforms"
+    fail_msg: >-
+      {{ platform }} is not a supported platform for this role. Supported
+      platforms are: {{ int_var_supported_platforms | join(', ') }}.
+    success_msg: >-
+      The platform '{{ platform }}' is supported.
+
+- name: Set platform facts
+  ansible.builtin.set_fact:
+    platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
+    platform_gcp: "{% if platform == 'gcp' %}true{% else %}false{% endif %}"
 
 - name: Collect package information
   ansible.builtin.package_facts:
@@ -54,6 +92,7 @@
     success_msg: >-
       The required package {{ item }} is installed
   loop: "{{ int_var_required_packages_azure }}"
+  when: platform_azure
 
 - name: Assert that required packages meet minimum required versions
   ansible.builtin.assert:
@@ -79,19 +118,6 @@
       The service '{{ item }}' was discovered on this system.
   loop: "{{ int_var_required_services }}"
 
-- name: Assert that the platform is supported
-  ansible.builtin.assert:
-    that: "'{{ platform }}' in int_var_supported_platforms"
-    fail_msg: >-
-      {{ platform }} is not a supported platform for this role. Supported
-      platforms are: {{ int_var_supported_platforms | join(', ') }}.
-    success_msg: >-
-      The platform '{{ platform }}' is supported.
-
-- name: Set platform facts
-  ansible.builtin.set_fact:
-    platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
-
 - name: Assert that STONITH method is supported
   ansible.builtin.assert:
     that: "'{{ stonith }}' in int_var_supported_stonith"
@@ -104,6 +130,7 @@
 - name: Set STONITH facts
   ansible.builtin.set_fact:
     stonith_sbd: "{% if stonith == 'sbd' %}true{% else %}false{% endif %}"
+    stonith_native: "{% if stonith == 'native' %}true{% else %}false{% endif %}"
 
 - name: Assert that sbd_devices is defined when sdb is used
   ansible.builtin.assert:
@@ -138,6 +165,7 @@
     path: "{{ item }}"
   register: int_reg_sbd_device_check
   loop: "{{ sbd_devices }}"
+  when: stonith_sbd
 
 - name: Assert sbd_devices are available
   ansible.builtin.assert:
@@ -149,3 +177,4 @@
     success_msg: >-
       Device {{ item.item }} found
   loop: "{{ int_reg_sbd_device_check.results }}"
+  when: stonith_sbd

@@ -1,36 +1,4 @@
 ---
-- name: Ensure logd is enabled and started
-  ansible.builtin.systemd:
-    name: logd
-    state: started
-    enabled: true
-
-- name: Ensure sysctl tuning is present
-  ansible.posix.sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    state: present
-    reload: true
-  loop: "{{ int_var_sysctl | dict2items }}"
-
-- name: Get a list of ethernet adapters
-  ansible.builtin.find:
-    path: /etc/sysconfig/network/
-    patterns: '^ifcfg-eth[0-9]*$'
-    recurse: false
-    use_regex: true
-  register: int_reg_eth_files
-  when: platform_azure
-
-- name: Ensure 'CLOUD_NETCONFIG_MANAGE' is disabled for eth0
-  ansible.builtin.lineinfile:
-    path: "{{ item.path }}"
-    regexp: '^CLOUD_NETCONFIG_MANAGE='
-    line: 'CLOUD_NETCONFIG_MANAGE="no"'
-    backup: true
-  loop: "{{ int_reg_eth_files.files }}"
-  when: platform_azure
-
 - name: Ensure haclient group exists
   ansible.builtin.group:
     name: 'haclient'
@@ -45,7 +13,7 @@
     home: '/var/lib/heartbeat/cores/hacluster'
     shell: '/bin/bash'
     expires: -1
-    password: hacluster_password
+    password: "{{ hacluster_password | password_hash('sha512') }}"
 
 - name: Ensure that halcuster home directory has the correct permissions
   ansible.builtin.file:

@@ -11,6 +11,7 @@ The following platforms are supported:
 The following STONITH methods are supported
 
 * SBD
+* Azure Native Fencing Agent
 
 ## Idempotency
 
@@ -30,15 +31,45 @@ are required.
 WIP list of variables - some will be required some will not, this will get
 messy!
 
-platform - string - the name of the platform, supported platforms are:
+### Required variables
 
-* Azure
-
-stonith - string - the name of the stonith method to use. Support methods are:
-
-* sbd
-
-sbd_devices - list of string - required when stonith is set to `sbd` is true
-primary - string - the hostname of the host considered
+* platform - string - the name of the platform, supported platforms are:
+  * Azure
+* stonith - string - the name of the stonith method to use. Support methods are:
+  * sbd
+  * native (will automagically choose the correct native stonith based on the
+    platform)
+* primary - string - the hostname of the host considered
 to be the primary host, for HANA, this should be the host that is currently the
 HANA System Replication master.
+
+### Optional variable
+
+* sbd_devices - list of string - required when stonith is set to `sbd` is true
+* primary_computer_name - some stonith primitives may use an identifier that
+  doesn't match the hostname when working cluster members. For example, a VM
+  in Azure may be named `hana01-vm` but the hostname may be `hana01`. The
+  fence agent needs to know the Azure name when performing fencing actions.
+  Enter the name that the stonith primitive will use for the primary node, if it
+  is different to the hostname.
+* secondary_computer_name: As above but for the secondary node.
+
+### Required Variables for Azure Fence Agent
+
+To create the Azure Fence Agent, follow the instructions [here](https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker#use-an-azure-fence-agent-1).
+Currently, this role supports the Azure Fence Agent when using a service
+principle, although managed identity may be supported in the future. When using
+the Azure Fence Agent the following variables are required. The
+
+* afa_subscription_id - string - the subscription ID that the VMs and fence
+  agent app reside in.
+* afa_resource_group - string - the resource group that the VMs reside in.
+* afa_tenant_id - string - the id of the tenant that the VMs and fence agent
+  app reside in.
+* afa_app_id - string - the Azure Fence Agent app id.
+* afa_app_secret - string - the Azure Fence Agent app password
+
+### Required Variables for GCP
+
+Only native fencing is officially supported in GCP. This role uses the STONITH
+fencing agent  `fence_gce`.
