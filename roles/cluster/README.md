@@ -81,13 +81,10 @@ The roles expects the following:
 ### Required variables
 
 * platform - string - the name of the platform, supported platforms are:
-    * gcp
-    * aws
-    * azure
+  GCP, AWS & AWS
 * stonith - string - the name of the stonith type to use. Support methods are:
-    * sbd
-    * native (will automagically choose the correct native stonith based on the
-    platform)
+  sbd & native (will automagically choose the correct native stonith based on the
+  platform)
 * primary - string - the hostname of the host considered
   to be the primary host, for HANA, this should be the host that is currently the
   HANA System Replication master.
