@@ -7,7 +7,9 @@
   changed_when: false
   failed_when: false
   check_mode: false
-  when: not int_fact_ssh_required
+  when:
+    - int_fact_configured is defined
+    - int_fact_configured
 
 - name: Assert that all hosts can perform password-free ssh logins
   ansible.builtin.assert:
@@ -21,4 +23,5 @@
       {{ item.item }}.
   loop: "{{ int_reg_post_ssh_command.results }}"
   when:
-    - not int_fact_ssh_required
+    - int_fact_configured is defined
+    - int_fact_configured

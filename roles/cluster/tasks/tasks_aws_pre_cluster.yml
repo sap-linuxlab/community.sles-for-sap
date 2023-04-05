@@ -1,0 +1,23 @@
+---
+- name: Ensure that root's aws directory exists
+  ansible.builtin.file:
+    path: "/root/.aws"
+    state: directory
+    owner: 'root'
+    group: 'root'
+    mode: '0750'
+
+- name: Ensure config file has cluster block
+  ansible.builtin.blockinfile:
+    path: "/root/.aws/config"
+    state: 'present'
+    create: true
+    owner: 'root'
+    group: 'root'
+    mode: '0540'
+    block: |
+      [profile stonith]
+      region = {{ aws_region }}
+      output = text
+      aws_access_key_id = {{ aws_access_key_id }}
+      aws_secret_access_key = {{ aws_secret_access_key }}

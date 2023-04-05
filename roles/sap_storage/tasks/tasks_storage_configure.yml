@@ -1,12 +1,12 @@
 ---
 - name: Ensure VG exists - {{ item.key }}
-  ansible.builtin.lvg:
+  community.general.lvg:
     state: present
     vg: "{{ item.value.label }}{{ vg_suffix }}"
     pvs: "{{ item.value.devices }}"
 
 - name: Ensure LV is present (single-device LVG) - {{ item.key }}
-  ansible.builtin.lvol:
+  community.general.lvol:
     state: present
     vg: "{{ item.value.label }}{{ vg_suffix }}"
     lv: "{{ item.value.label }}{{ lv_suffix }}"
@@ -14,7 +14,7 @@
   when: item.value.devices | length == 1
 
 - name: Ensure LV is present (multi-device LVG) - {{ item.key }}
-  ansible.builtin.lvol:
+  community.general.lvol:
     state: present
     vg: "{{ item.value.label }}{{ vg_suffix }}"
     lv: "{{ item.value.label }}{{ lv_suffix }}"

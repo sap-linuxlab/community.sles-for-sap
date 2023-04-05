@@ -49,3 +49,12 @@ externally from the roles.
 
 To see more information about the naming and coding conventions used in the
 project, see the [Conventions page](Conventions.md).
+
+## Recommended Versions
+
+This project has used the following key software version.
+
+* Ansible 7.1.0
+* Ansible-core 2.14.1
+
+We strongly recommend using these or newer versions when deploying.

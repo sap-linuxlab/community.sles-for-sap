@@ -14,6 +14,16 @@
     - 'virtual_ip'
     - 'hacluster_password'
 
+- name: Assert that there are only two nodes in the play
+  ansible.builtin.assert:
+    that: ansible_play_hosts | length == 2
+    fail_msg: >-
+      There are {{ ansible_play_hosts | length }} hosts in this play. This role
+      supports 2 nodes only. Ensure that there are only two nodes in this play
+      before running again.
+    success_msg: >-
+      Found the expected 2 nodes.
+
 - name: Assert that primary variable matches a node in the play
   ansible.builtin.assert:
     that: >-
@@ -29,6 +39,35 @@
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ primary == inventory_hostname }}"
   check_mode: false
+
+- name: Set primary and secondary hostname facts
+  ansible.builtin.set_fact:
+    int_fact_primary_hostname: "{{ primary }}"
+    int_fact_secondary_hostname: "{{ ansible_play_hosts | reject('equalto', primary) | first }}"
+
+# In some circumstances, the stonith primitive needs to map linux hostnames to
+# the name of the device is needs to kill. This is done host map. If the user
+# provides computer names, they are loaded into facts below, otherwise, the
+# hostnames are used.
+- name: Set up computer names
+  ansible.builtin.set_fact:
+    int_fact_primary_computer_name: "{{ primary_computer_name | default(int_fact_primary_hostname) }}"
+    int_fact_secondary_computer_name: "{{ secondary_computer_name | default(int_fact_secondary_hostname) }}"
+
+- name: Assert that the platform is supported
+  ansible.builtin.assert:
+    that: "'{{ platform }}' in int_var_supported_platforms"
+    fail_msg: >-
+      {{ platform }} is not a supported platform for this role. Supported
+      platforms are: {{ int_var_supported_platforms | join(', ') }}.
+    success_msg: >-
+      The platform '{{ platform }}' is supported.
+
+- name: Set platform facts
+  ansible.builtin.set_fact:
+    platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
+    platform_gcp: "{% if platform == 'gcp' %}true{% else %}false{% endif %}"
+    platform_aws: "{% if platform == 'aws' %}true{% else %}false{% endif %}"
 
 - name: Collect package information
   ansible.builtin.package_facts:
@@ -54,17 +93,43 @@
     success_msg: >-
       The required package {{ item }} is installed
   loop: "{{ int_var_required_packages_azure }}"
+  when: platform_azure
 
-- name: Assert that required packages meet minimum required versions
+- name: Assert that GCP specific required packages are installed
   ansible.builtin.assert:
-    that: "{{ ansible_facts['packages'][item.pkg][0].version is version(item.version), '>=' }}"
+    that: "'{{ item }}' in ansible_facts.packages"
+    fail_msg: >-
+      The package {{ item }} is not installed. This package is required for
+      this role. The package must be installed for the role to execute
+      successfully.
+    success_msg: >-
+      The required package {{ item }} is installed
+  loop: "{{ int_var_required_packages_gcp }}"
+  when: platform_gcp
+
+- name: Assert that required packages meet minimum required versions SLES 15.4 or newer
+  ansible.builtin.assert:
+    that: "{{ ansible_facts['packages'][item.pkg][0].version is version(item.version, '>=') }}"
     fail_msg: >-
       The installed package '{{ item.pkg }}' is below the required version of
       '{{ item.version }}'. Upgrade the to at least this version before running
       this role.
     success_msg: >-
       The package '{{ item.pkg }}' meets the minimum required version.
-  loop: "{{ int_var_min_package_version }}"
+  loop: "{{ int_var_min_package_version_15_4_and_later }}"
+  when: ansible_facts.distribution_version is version('15.4', '>=')
+
+- name: Assert that required packages meet minimum required versions SLES 15.3 or earlier
+  ansible.builtin.assert:
+    that: "{{ ansible_facts['packages'][item.pkg][0].version is version(item.version, '>=') }}"
+    fail_msg: >-
+      The installed package '{{ item.pkg }}' is below the required version of
+      '{{ item.version }}'. Upgrade the to at least this version before running
+      this role.
+    success_msg: >-
+      The package '{{ item.pkg }}' meets the minimum required version.
+  loop: "{{ int_var_min_package_version_pre_15_3 }}"
+  when: ansible_facts.distribution_version is version('15.3', '>=')
 
 - name: Collect service information
   ansible.builtin.service_facts:
@@ -79,19 +144,6 @@
       The service '{{ item }}' was discovered on this system.
   loop: "{{ int_var_required_services }}"
 
-- name: Assert that the platform is supported
-  ansible.builtin.assert:
-    that: "'{{ platform }}' in int_var_supported_platforms"
-    fail_msg: >-
-      {{ platform }} is not a supported platform for this role. Supported
-      platforms are: {{ int_var_supported_platforms | join(', ') }}.
-    success_msg: >-
-      The platform '{{ platform }}' is supported.
-
-- name: Set platform facts
-  ansible.builtin.set_fact:
-    platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
-
 - name: Assert that STONITH method is supported
   ansible.builtin.assert:
     that: "'{{ stonith }}' in int_var_supported_stonith"
@@ -104,6 +156,7 @@
 - name: Set STONITH facts
   ansible.builtin.set_fact:
     stonith_sbd: "{% if stonith == 'sbd' %}true{% else %}false{% endif %}"
+    stonith_native: "{% if stonith == 'native' %}true{% else %}false{% endif %}"
 
 - name: Assert that sbd_devices is defined when sdb is used
   ansible.builtin.assert:
@@ -138,6 +191,7 @@
     path: "{{ item }}"
   register: int_reg_sbd_device_check
   loop: "{{ sbd_devices }}"
+  when: stonith_sbd
 
 - name: Assert sbd_devices are available
   ansible.builtin.assert:
@@ -149,3 +203,35 @@
     success_msg: >-
       Device {{ item.item }} found
   loop: "{{ int_reg_sbd_device_check.results }}"
+  when: stonith_sbd
+
+# AWS Specific pre-checks
+- name: Ensure that AWS specific variables are supplied
+  ansible.builtin.assert:
+    that: "{{ item }} is defined"
+    fail_msg: >-
+      The variable '{{ item }}' is required when deploying the a cluster on AWS.
+      Ensure this variable is defined before running this role.
+    success_msg: >-
+      The variable '{{ item }}' is defined as expected.
+  loop:
+    - 'aws_stonith_tag'
+    - 'aws_route_table_id'
+    - 'aws_access_key_id'
+    - 'aws_secret_access_key'
+  when: platform_aws
+
+# If dual_corosync_rings is true, ensure that eth1 exists
+- name: Ensure that eth1 exists for dual corosync configuration
+  ansible.builtin.assert:
+    that:
+      - "{{ ansible_facts['eth1'] is defined }}"
+      - "{{ ansible_facts['eth1']['ipv4']['address'] is defined }}"
+    fail_msg: >-
+      The option 'dual_corosync_rings' is set to 'true' but eth1 was not
+      discovered. To use two corosync rings eth0 and eth1 must be present.
+      Ensure that eth1 exists and is configured correctly before using this
+      option.
+    success_msg: >-
+      eth1 found.
+  when: dual_corosync_rings

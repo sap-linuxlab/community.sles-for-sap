@@ -1,0 +1,21 @@
+---
+- name: Use the cluster role
+  hosts: hana # ensure only two hosts!
+  remote_user: my_user
+  become: true
+  any_errors_fatal: true # any_errors_fatal strongly recommended!
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hacluster_password: 'Example_poor_passwo0rd!'
+    virtual_ip: '10.10.10.50'
+    platform: 'aws'
+    stonith: 'native'
+    primary: 'hana01'
+    aws_access_key_id: '<your access key>'
+    aws_secret_access_key: '<your secret>'
+    aws_stonith_tag: '<your stonith tag>'
+    aws_route_table_id: '<your route table id>'
+    dual_corosync_rings: true
+  roles:
+    - { role: ../roles/cluster }

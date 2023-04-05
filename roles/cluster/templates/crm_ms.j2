@@ -1,6 +1,0 @@
-ms {{ int_fact_ms.name }} {{ int_fact_ms.resource }} \
-{% for key, value in int_fact_ms.items() %}
-{% if key != 'name' and key != 'resource' %}
-  {{ value.name }} {% for k, v in value.items() %}{% if k != 'name'%}{{ k }}={{ v }} {% endif %}{% endfor %} \
-{% endif %}
-{% endfor %}

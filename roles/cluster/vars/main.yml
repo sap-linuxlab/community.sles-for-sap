@@ -12,25 +12,41 @@ int_var_required_packages:
   - 'libxml2-tools'
   - 'ClusterTools2'
   - 'SAPHanaSR'
+  - 'rsyslog'
 
-int_var_min_package_version:
+# this is a SLES 15 SP4 list - may need to alterations for older versions
+int_var_min_package_version_15_4_and_later:
   - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
   - { 'pkg': 'socat', 'version': '1.7.3.2' }
   - { 'pkg': 'ClusterTools2', 'version': '3.1.2' }
   - { 'pkg': 'libxml2-tools', 'version': '2.9.14' }
 
+int_var_min_package_version_pre_15_3:
+  - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
+  - { 'pkg': 'socat', 'version': '1.7.3.2' }
+  - { 'pkg': 'ClusterTools2', 'version': '3.1.2' }
+  - { 'pkg': 'libxml2-tools', 'version': '2.9.7' }
+
 int_var_required_packages_azure:
   - python3-azure-mgmt-compute
   - python3-azure-identity
+
+int_var_required_packages_gcp:
+  - python3-httplib2
+  - python3-google-auth-httplib2
+  - python3-google-api-python-client
 
 int_var_required_services:
   - 'logd.service'
 
 int_var_supported_platforms:
   - 'azure'
+  - 'gcp'
+  - 'aws'
 
 int_var_supported_stonith:
   - 'sbd'
+  - 'native'
 
 int_var_sysctl:
   vm.dirty_bytes: 629145600
@@ -39,3 +55,11 @@ int_var_sysctl:
 
 int_var_state_dir: '/var/lib/sles-for-sap-roles'
 int_var_cluster_state: /var/lib/sles-for-sap-roles/.azure_cluster
+
+int_var_sbd_config:
+  - {'regexp': '^SBD_PACEMAKER=', 'line': 'SBD_PACEMAKER=yes'}
+  - {'regexp': '^SBD_STARTMODE=', 'line': 'SBD_STARTMODE=always'}
+  - {'regexp': '^SBD_DELAY_START=', 'line': 'SBD_DELAY_START=216'}
+  - {'regexp': '^SBD_WATCHDOG_TIMEOUT=', 'line': 'SBD_WATCHDOG_TIMEOUT=60'}
+
+int_var_cluster_config: '/tmp/cluster_config'

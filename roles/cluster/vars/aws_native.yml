@@ -1,0 +1,141 @@
+cluster_config:
+  properties:
+    stonith-timeout: '600'
+    stonith-enabled: "true"
+  op_defaults:
+    timeout: '600'
+  rsc-options:
+    resource-stickiness: '1000'
+    migration-threshold: '5000'
+  primitives:
+    aws_azure:
+      primitive_name: 'rsc_aws_stonith'
+      type: 'stonith:external/ec2'
+      params:
+        name: 'params'
+        tag: "{{ aws_stonith_tag }}"
+        profile: 'stonith'
+        pcmk_delay_max: '45'
+      op_monitor:
+        name: 'op monitor'
+        interval: '300'
+        timeout: '120'
+      op_start:
+        name: 'op start'
+        interval: '0'
+        timeout: '180'
+      _:
+        name: 'op stop'
+        interval: '0'
+        timeout: '180'
+      meta:
+        name: 'meta'
+        target-role: 'Started'
+    aws_vip:
+      primitive_name: "rsc_aws_vip_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      type: 'ocf:suse:aws-vpc-move-ip'
+      params:
+        name: 'params'
+        ip: "{{ virtual_ip }}"
+        routing_table: "{{ aws_route_table_id }}"
+        interface: 'eth0'
+        profile: 'stonith'
+      op_start:
+        name: 'op start'
+        interval: '0'
+        timeout: '180'
+      op_stop:
+        name: 'op stop'
+        interval: '0'
+        timeout: '180'
+    sap_hana_topology:
+      primitive_name: "rsc_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      type: 'ocf:suse:SAPHanaTopology'
+      params:
+        name: 'params'
+        SID: '{{ hana_sid }}'
+        InstanceNumber: "{{ hana_instance_number }}"
+      operations:
+        name: 'operations'
+        '\$id': "rsc_sap2_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations"
+      op_monitor:
+        name: 'op monitor'
+        interval: '10'
+        timeout: '600'
+      op_start:
+        name: 'op start'
+        interval: '0'
+        timeout: '600'
+      op_stop:
+        name: 'op stop'
+        interval: '0'
+        timeout: '300'
+    sap_hana:
+      primitive_name: "rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      type: "ocf:suse:SAPHana"
+      operations:
+        name: 'operations'
+        '\$id': "rsc_sap_{{ hana_sid }}_HDB{{ hana_instance_number }}-operations"
+      op_start:
+        name: 'op start'
+        interval: '0'
+        timeout: '3600'
+      op_stop:
+        name: 'op stop'
+        interval: '0'
+        timeout: '3600'
+      op_promote:
+        name: 'op promote'
+        interval: '0'
+        timeout: '3600'
+      op_monitor1:
+        name: 'op monitor'
+        interval: '60'
+        role: 'Master'
+        timeout: '700'
+      op_monitor2:
+        name: 'op monitor'
+        interval: '61'
+        role: 'Slave'
+        timeout: '700'
+      params:
+        name: 'params'
+        SID: "{{ hana_sid }}"
+        InstanceNumber: "{{ hana_instance_number }}"
+        PREFER_SITE_TAKEOVER: 'true'
+        DUPLICATE_PRIMARY_TIMEOUT: '7200'
+        AUTOMATED_REGISTER: 'false'
+  clones:
+    sap_hana_topology:
+      clone_name: "cln_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      clone: "rsc_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      meta:
+        name: 'meta'
+        clone-node-max: '1'
+        target-role: 'Started'
+        interleave: 'true'
+  mss:
+    sap_hana:
+      ms_name: "msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      resource: "rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      meta:
+        name: 'meta'
+        notify: 'true'
+        clone-max: '2'
+        clone-node-max: '1'
+        target-role: 'Started'
+        interleave: 'true'
+  colocations:
+    ip_hana:
+      colo_name: "col_saphana_ip_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      score: 2000
+      members:
+        - rsc_aws_vip_{{ hana_sid }}_HDB{{ hana_instance_number }}:Started
+        - msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}:Master
+  orders:
+    hana:
+      order_name: "ord_SAPHana_{{ hana_sid }}_HDBP{{ hana_instance_number }}"
+      kind: 2000
+      members:
+        - cln_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}
+        - msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}

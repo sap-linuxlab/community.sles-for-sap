@@ -29,9 +29,17 @@
     msg: "Platform:{{ platform }}, STONITH:{{ stonith }}"
   when: not int_fact_cluster_configured
 
-- name: Run cluster prerequisite tasks
-  ansible.builtin.include_tasks: tasks_pre_cluster.yml
-  when: not int_fact_cluster_configured
+- name: Run Azure cluster prerequisite tasks
+  ansible.builtin.include_tasks: tasks_azure_pre_cluster.yml
+  when:
+    - not int_fact_cluster_configured
+    - platform_azure
+
+- name: Run AWS cluster prerequisite tasks
+  ansible.builtin.include_tasks: tasks_aws_pre_cluster.yml
+  when:
+    - not int_fact_cluster_configured
+    - platform_aws
 
 - name: Run sbd tasks
   ansible.builtin.include_tasks: tasks_sbd_preconfigure.yml
@@ -45,13 +53,35 @@
     - stonith_sbd
     - not int_fact_cluster_configured
 
+- name: Prepare the hacluster user
+  ansible.builtin.include_tasks: tasks_hacluster_user_prep.yml
+  when: not int_fact_cluster_configured
+
 - name: Create corosysnc configuration
   ansible.builtin.include_tasks: tasks_corosync_configuration.yml
   when: not int_fact_cluster_configured
 
-- name: Configure HANA cluster on Azure HANA using SBD
-  ansible.builtin.include_tasks: tasks_azure_hana_cluster.yml
+- name: Configure HANA cluster
+  ansible.builtin.include_tasks: tasks_hana_cluster.yml
   when:
-    - platform_azure
-    - stonith_sbd
     - not int_fact_cluster_configured
+
+- name: Create state directory
+  ansible.builtin.file:
+    path: "{{ int_var_state_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Create state file
+  ansible.builtin.file:
+    path: "{{ int_var_cluster_state }}"
+    state: touch
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Set cluster configured fact
+  ansible.builtin.set_fact:
+    int_fact_cluster_configured: true
