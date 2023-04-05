@@ -81,9 +81,9 @@ The roles expects the following:
 ### Required variables
 
 * platform - string - the name of the platform, supported platforms are:
-  * Azure
   * GCP
   * AWS
+  * Azure
 * stonith - string - the name of the stonith type to use. Support methods are:
   * sbd
   * native (will automagically choose the correct native stonith based on the
