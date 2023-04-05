@@ -8,6 +8,10 @@
   ansible.builtin.include_vars: gcp_corosync.yml
   when: platform_gcp
 
+- name: Load aws corosync variables
+  ansible.builtin.include_vars: aws_corosync.yml
+  when: platform_aws
+
 # A cluster requires the same authkey to be present on all nodes, the next
 # three tasks collect the authkey data and ascertain whether or not a new
 # needs to be created and distributed.
@@ -55,7 +59,6 @@
     mode: '0600'
   check_mode: true
   register: int_fact_template_check
-  when: platform_azure or platform_gcp
 
 - name: Set corosync facts
   ansible.builtin.set_fact:
@@ -108,15 +111,24 @@
       delegate_to: "{{ primary }}"
       when: inventory_hostname != primary
 
-- name: Write azure corosync file
-  when: int_fact_corosync_change
-  # notify: Start pacemaker
-  block:
-    - name: Ensure corosync.conf is populated
-      ansible.builtin.template:
-        src: corosync_single_ring.j2
-        dest: /etc/corosync/corosync.conf
-        owner: root
-        group: root
-        mode: '0600'
-      when: platform_azure or platform_gcp
+- name: Ensure single ring corosync.conf is populated
+  ansible.builtin.template:
+    src: corosync_single_ring.j2
+    dest: /etc/corosync/corosync.conf
+    owner: root
+    group: root
+    mode: '0600'
+  when:
+    - not dual_corosync_rings
+    - int_fact_authkey_change
+
+- name: Ensure dual ring corosync.conf is populated
+  ansible.builtin.template:
+    src: corosync_dual_ring.j2
+    dest: /etc/corosync/corosync.conf
+    owner: root
+    group: root
+    mode: '0600'
+  when:
+    - dual_corosync_rings
+    - int_fact_authkey_change

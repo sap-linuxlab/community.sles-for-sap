@@ -1,0 +1,21 @@
+---
+- name: Use the cluster role
+  hosts: all
+  remote_user: sstringer
+  become: true
+  any_errors_fatal: true
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hacluster_password: 'Example_poor_passwo0rd!'
+    virtual_ip: '10.10.10.50'
+    platform: 'azure'
+    stonith: 'native'
+    primary: 'hana01'
+    afa_subscription_id: '<your subscription id>'
+    afa_resource_group: '<your resource group>'
+    afa_tenant_id: '<your tenant id>'
+    afa_app_id: '<your app id>'
+    afa_app_secret: '<your app secret>'
+  roles:
+    - { role: ../roles/cluster }

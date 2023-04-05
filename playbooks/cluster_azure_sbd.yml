@@ -1,0 +1,18 @@
+---
+- name: Use the cluster role
+  hosts: all
+  remote_user: sstringer
+  become: true
+  any_errors_fatal: true
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hacluster_password: 'Example_poor_passwo0rd!'
+    virtual_ip: '10.10.10.50'
+    platform: 'azure'
+    stonith: 'sbd'
+    primary: 'hana01'
+    sbd_devices:
+      - '/dev/disk/azure/scsi1/lun4'
+  roles:
+    - { role: ../roles/cluster }

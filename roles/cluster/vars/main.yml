@@ -12,17 +12,29 @@ int_var_required_packages:
   - 'libxml2-tools'
   - 'ClusterTools2'
   - 'SAPHanaSR'
+  - 'rsyslog'
 
 # this is a SLES 15 SP4 list - may need to alterations for older versions
-int_var_min_package_version:
+int_var_min_package_version_15_4_and_later:
   - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
   - { 'pkg': 'socat', 'version': '1.7.3.2' }
   - { 'pkg': 'ClusterTools2', 'version': '3.1.2' }
   - { 'pkg': 'libxml2-tools', 'version': '2.9.14' }
 
+int_var_min_package_version_pre_15_3:
+  - { 'pkg': 'SAPHanaSR', 'version': '0.162.1' }
+  - { 'pkg': 'socat', 'version': '1.7.3.2' }
+  - { 'pkg': 'ClusterTools2', 'version': '3.1.2' }
+  - { 'pkg': 'libxml2-tools', 'version': '2.9.7' }
+
 int_var_required_packages_azure:
   - python3-azure-mgmt-compute
   - python3-azure-identity
+
+int_var_required_packages_gcp:
+  - python3-httplib2
+  - python3-google-auth-httplib2
+  - python3-google-api-python-client
 
 int_var_required_services:
   - 'logd.service'
@@ -30,6 +42,7 @@ int_var_required_services:
 int_var_supported_platforms:
   - 'azure'
   - 'gcp'
+  - 'aws'
 
 int_var_supported_stonith:
   - 'sbd'
@@ -50,7 +63,3 @@ int_var_sbd_config:
   - {'regexp': '^SBD_WATCHDOG_TIMEOUT=', 'line': 'SBD_WATCHDOG_TIMEOUT=60'}
 
 int_var_cluster_config: '/tmp/cluster_config'
-
-# Some GC specific vars
-int_var_gcli_path: '/root/.gcp/'
-int_var_gcli_tools_url: 'https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-423.0.0-linux-x86_64.tar.gz'

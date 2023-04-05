@@ -1,0 +1,53 @@
+totem {
+  version: {{ corosync_totem_version }}
+  cluster_name: {{ corosync_cluster_name }}
+  clear_node_high_bit: {{ corosync_totem_clear_node_high_bit }}
+  transport: {{ corosync_totem_transport }}
+  token: {{ corosync_totem_token }}
+  consensus: {{ corosync_totem_consensus }}
+  join: {{ corosync_totem_join }}
+  max_messages: {{ corosync_totem_max_messages }}
+  token_retransmits_before_loss_const: {{ corosync_totem_token_retransmits_before_loss_const }}
+  crypto_cipher: {{ corosync_totem_crypto_cipher }}
+  crypto_hash: {{ corosync_totem_crypto_hash }}
+  rrp_mode: {{ corosync_totem_rrp_mode }}
+  secauth: {{ corosync_totem_secauth }}
+
+  interface {
+    ringnumber: 0
+    bindnetaddr: {{ ansible_facts['eth0']['ipv4']['address'] }}
+    mcastport: {{ corosync_totem_interface_mcastport }}
+    ttl: {{ corosync_totem_interface_ttl }}
+  }
+}
+
+logging {
+  fileline: {{ corosync_logging_fileline }}
+  to_logfile: {{ corosync_logging_to_logfile }}
+  to_syslog: {{ corosync_logging_to_syslog }}
+  to_stderr: {{ corosync_logging_to_stderr }}
+  logfile: {{ corosync_logging_logfile }}
+  debug: {{ corosync_logging_debug }}
+  timestamp: {{ corosync_logging_timestamp }}
+  logger_subsys {
+    subsys: {{ corosync_logging_logger_subsys_subsys }}
+    debug: {{ corosync_logging_logger_subsys_debug }}
+  }
+}
+nodelist {
+{% for host in ansible_play_batch %}
+  node {
+    ring0_addr: {{ hostvars[host]['ansible_facts']['eth0']['ipv4']['address'] }}
+    ring1_addr: {{ hostvars[host]['ansible_facts']['eth1']['ipv4']['address'] }}
+    nodeid: {{ loop.index }}
+  }
+{% endfor %}
+}
+
+quorum {
+  # Enable and configure quorum subsystem (default: off)
+  # see also corosync.conf.5 and votequorum.5
+  provider: {{ corosync_quorum_provider }}
+  expected_votes: {{ corosync_quorum_expected_votes }}
+  two_node: {{ corosync_quorum_two_node }}
+}

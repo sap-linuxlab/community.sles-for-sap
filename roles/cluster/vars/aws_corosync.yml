@@ -1,0 +1,32 @@
+---
+# totem settings
+corosync_totem_version: '2'
+corosync_cluster_name: 'hana_cluster'
+corosync_totem_clear_node_high_bit: 'yes'
+corosync_totem_transport: 'udpu'
+corosync_totem_token: '3000'
+corosync_totem_consensus: '36000'
+corosync_totem_join: '60'
+corosync_totem_max_messages: '20'
+corosync_totem_token_retransmits_before_loss_const: '10'
+corosync_totem_secauth: 'on'
+corosync_totem_crypto_cipher: 'none'
+corosync_totem_crypto_hash: 'none'
+corosync_totem_rrp_mode: 'passive'
+# interface settings
+corosync_totem_interface_mcastport: '5405'
+corosync_totem_interface_ttl: '1'
+# logging settings
+corosync_logging_fileline: 'off'
+corosync_logging_to_stderr: 'no'
+corosync_logging_to_logfile: 'yes'
+corosync_logging_to_syslog: 'yes'
+corosync_logging_logfile: '/var/log/cluster/corosync.log'
+corosync_logging_debug: 'off'
+corosync_logging_timestamp: 'on'
+corosync_logging_logger_subsys_subsys: QUORUM
+corosync_logging_logger_subsys_debug: 'off'
+# quorum
+corosync_quorum_provider: 'corosync_votequorum'
+corosync_quorum_expected_votes: '2'
+corosync_quorum_two_node: '1'

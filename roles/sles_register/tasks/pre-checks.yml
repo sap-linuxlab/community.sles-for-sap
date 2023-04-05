@@ -2,9 +2,11 @@
 - name: Assert that reg_code is declared
   ansible.builtin.assert:
     that: reg_code is defined
-    fail_msg: >
+    fail_msg: ->
       The variable 'reg_code' must be defined in order to use this role. Ensure
       that the variable is defined when calling the role.
+    success_msg: ->
+      reg_code is defined
 
 - name: Check for registercloudguest
   ansible.builtin.command: which registercloudguest

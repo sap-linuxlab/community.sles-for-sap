@@ -35,6 +35,12 @@
     - not int_fact_cluster_configured
     - platform_azure
 
+- name: Run AWS cluster prerequisite tasks
+  ansible.builtin.include_tasks: tasks_aws_pre_cluster.yml
+  when:
+    - not int_fact_cluster_configured
+    - platform_aws
+
 - name: Run sbd tasks
   ansible.builtin.include_tasks: tasks_sbd_preconfigure.yml
   when:

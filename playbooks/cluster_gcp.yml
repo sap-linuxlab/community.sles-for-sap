@@ -1,0 +1,16 @@
+---
+- name: Use the cluster role
+  hosts: hana
+  remote_user: sstringer
+  any_errors_fatal: true
+  become: true
+  vars:
+    hana_sid: 'SU1'
+    hana_instance_number: '00'
+    hacluster_password: 'Example_poor_passwo0rd!'
+    virtual_ip: '10.10.10.50'
+    platform: 'gcp'
+    stonith: 'native'
+    primary: hana01
+  roles:
+    - { role: ../roles/cluster }

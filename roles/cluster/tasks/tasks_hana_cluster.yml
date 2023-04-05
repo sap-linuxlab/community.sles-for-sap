@@ -17,6 +17,11 @@
   when:
     - platform_gcp
 
+- name: Include hana aws native cluster_config
+  ansible.builtin.include_vars: aws_native.yml
+  when:
+    - platform_aws
+
 - name: Ensure logd is enabled and started
   ansible.builtin.systemd:
     name: logd
@@ -130,7 +135,7 @@
 
 - name: Enter cluster maintenance mode
   ansible.builtin.command:
-    sudo crm configure property maintenance-mode=true
+    "crm configure property maintenance-mode=true"
   when: int_var_node_is_primary
 
 - name: Load the cluster config
