@@ -71,12 +71,12 @@ The roles expects the following:
 ## Variables
 
 * platform - the platform where the cluster is being configured. Allowed variables
-are: azure, gcp, aws
+  are: azure, gcp, aws
 * stonith - the STONITH fencing type to be used. Allowed values are SBD (Azure
-only) or native.
+  only) or native.
 * virtual_ip - the Virtual IP address that the cluster will use.
 * hacluster_password - the password to be set for the Linux OS user `hacluster`,
-the same password will be used on all nodes.
+  the same password will be used on all nodes.
 
 ### Required variables
 
@@ -143,4 +143,3 @@ There are no specific variable requirements for GCP.
   perform stonith actions
 * aws_secret_access_key - string - secret access key of the account to be used
   to perform stonith actions
-  
