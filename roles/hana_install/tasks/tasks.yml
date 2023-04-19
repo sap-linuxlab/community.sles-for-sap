@@ -2,6 +2,8 @@
 - name: Ensure that HANA sar file is unpacked
   ansible.builtin.command:
     "{{ sapcar_binary }} -xf {{ hana_sar }} -R {{ hana_unpack_directory }} -manifest SIGNATURE.SMF"
+  args:
+    creates: "{{ hana_unpack_directory }}/SAP_HANA_DATABASE"
   when: not int_fact_hana_installed
 
 - name: Ensure copy of manifest file exists

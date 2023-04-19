@@ -16,9 +16,17 @@ totem {
   interface {
     ringnumber: 0
     bindnetaddr: {{ ansible_facts['eth0']['ipv4']['address'] }}
-    mcastport: {{ corosync_totem_interface_mcastport }}
+    mcastport: {{ corosync_totem_interface_mcastport_ring0 }}
     ttl: {{ corosync_totem_interface_ttl }}
   }
+
+  interface {
+    ringnumber: 1
+    bindnetaddr: {{ ansible_facts['eth1']['ipv4']['address'] }}
+    mcastport: {{ corosync_totem_interface_mcastport_ring1 }}
+    ttl: {{ corosync_totem_interface_ttl }}
+  }
+
 }
 
 logging {

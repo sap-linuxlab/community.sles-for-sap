@@ -9,10 +9,11 @@ The following platforms are supported:
 * Azure
 * GCP
 * AWS
+* Generic
 
 The following STONITH methods are supported
 
-* SBD (Azure Only)
+* SBD (Azure and Generic only)
 * Native (Azure, GCP, AWS)
 
 ## Idempotency
@@ -68,26 +69,26 @@ The roles expects the following:
 * Instance tags are set correctly to enable fencing
 * The VIP will be outside of the HANA subnets and is present in the routing table.
 
+### Generic Expectations
+
+The role supports `generic` clustering which is not platform specific. The only
+supported STONITH is `sbd`.
+
 ## Variables
 
-* platform - the platform where the cluster is being configured. Allowed variables
-  are: azure, gcp, aws
-* stonith - the STONITH fencing type to be used. Allowed values are SBD (Azure
-  only) or native.
-* virtual_ip - the Virtual IP address that the cluster will use.
-* hacluster_password - the password to be set for the Linux OS user `hacluster`,
-  the same password will be used on all nodes.
+The sections provides information regarding required, optional and platform
+specific variables.
 
 ### Required variables
 
 * platform - string - the name of the platform, supported platforms are:
-  GCP, AWS & AWS
+  azure, gcp, aws & generic
 * stonith - string - the name of the stonith type to use. Support methods are:
-  sbd & native (will automagically choose the correct native stonith based on the
-  platform)
+  sbd & native (will automagically choose the correct native stonith based on
+  the platform)
 * primary - string - the hostname of the host considered
-  to be the primary host, for HANA, this should be the host that is currently the
-  HANA System Replication master.
+  to be the primary host, for HANA, this should be the host that is currently
+  the HANA System Replication master.
 * virtual_ip - string - the Virtual IP address that the cluster will use.
 * hacluster_password - string - the password to be set for the Linux OS user
   `hacluster`, the same password will be used on all nodes.
@@ -140,3 +141,7 @@ There are no specific variable requirements for GCP.
   perform stonith actions
 * aws_secret_access_key - string - secret access key of the account to be used
   to perform stonith actions
+
+### Required Variables for generic
+
+There are no specific requirements for the generic platform.

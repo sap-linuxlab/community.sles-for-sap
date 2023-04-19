@@ -14,7 +14,9 @@ corosync_totem_crypto_cipher: 'none'
 corosync_totem_crypto_hash: 'none'
 corosync_totem_rrp_mode: 'passive'
 # interface settings
-corosync_totem_interface_mcastport: '5405'
+# interface settings
+corosync_totem_interface_mcastport_ring0: '5405'
+corosync_totem_interface_mcastport_ring1: '5407'
 corosync_totem_interface_ttl: '1'
 # logging settings
 corosync_logging_fileline: 'off'
