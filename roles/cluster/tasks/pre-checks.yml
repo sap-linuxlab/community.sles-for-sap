@@ -68,6 +68,7 @@
     platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
     platform_gcp: "{% if platform == 'gcp' %}true{% else %}false{% endif %}"
     platform_aws: "{% if platform == 'aws' %}true{% else %}false{% endif %}"
+    platform_generic: "{% if platform == 'generic' %}true{% else %}false{% endif %}"
 
 - name: Collect package information
   ansible.builtin.package_facts:
