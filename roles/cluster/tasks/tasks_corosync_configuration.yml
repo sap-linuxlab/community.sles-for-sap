@@ -14,7 +14,6 @@
 
 - name: Load generic corosync variables
   ansible.builtin.include_vars: generic_corosync.yml
-    
 
 # A cluster requires the same authkey to be present on all nodes, the next
 # three tasks collect the authkey data and ascertain whether or not a new

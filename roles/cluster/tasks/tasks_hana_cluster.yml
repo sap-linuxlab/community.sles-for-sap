@@ -24,7 +24,8 @@
 
 - name: Include hana generic sbd cluster_config
   ansible.builtin.include_vars:
-    when: 
+  when:
+    - platform_generic
 
 - name: Ensure logd is enabled and started
   ansible.builtin.systemd:
