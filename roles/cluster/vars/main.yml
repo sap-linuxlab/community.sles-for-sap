@@ -43,6 +43,7 @@ int_var_supported_platforms:
   - 'azure'
   - 'gcp'
   - 'aws'
+  - 'generic'
 
 int_var_supported_stonith:
   - 'sbd'
