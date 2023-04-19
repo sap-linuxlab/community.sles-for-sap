@@ -23,7 +23,7 @@
     - platform_aws
 
 - name: Include hana generic sbd cluster_config
-  ansible.builtin.include_vars:
+  ansible.builtin.include_vars: generic_sbd.yml
   when:
     - platform_generic
 
