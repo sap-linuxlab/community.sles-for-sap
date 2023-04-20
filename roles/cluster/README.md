@@ -112,7 +112,7 @@ specific variables.
 * dual_corosync_rings - bool - by default the a single corosync ring will be
   created using eth0 interfaces. If this value is set to `true` the corosync
   configuration will be made up of two rings, the first using eth0 and the
-  second using eth1. By deafult, `dual_corosync_rings` is set to `false`.
+  second using eth1. By default, `dual_corosync_rings` is set to `false`.
 * auto_register - bool - the HANA resource agent can automate the
   registration of the former master node when it rejoins the cluster after a
   failover. By default `auto_register` is set to `false` and registration must
