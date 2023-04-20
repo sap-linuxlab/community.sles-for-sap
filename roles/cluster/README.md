@@ -95,6 +95,12 @@ specific variables.
 
 ### Optional variable
 
+* use_softdog - bool - when using sbd, a watchdog is necessary. The role can
+  configure the software watchdog `softdog`, but if a hardware or virtual
+  watchdog is available that should be used instead. The role is not capable of
+  configure every possible watchdog, so when setting `use_softdog` to `false`,
+  it is the uses responsibility to ensure that the watchdog is configured.
+  By default, `use_softdog` is set to `true`.
 * sbd_devices - list of string - required when stonith is set to `sbd` is true
 * primary_computer_name - string - some stonith primitives may use an identifier
   that doesn't match the hostname when working cluster members. For example, a
@@ -106,7 +112,7 @@ specific variables.
 * dual_corosync_rings - bool - by default the a single corosync ring will be
   created using eth0 interfaces. If this value is set to `true` the corosync
   configuration will be made up of two rings, the first using eth0 and the
-  second using eth1.
+  second using eth1. By deafult, `dual_corosync_rings` is set to `false`.
 
 ### Required Variables for Azure Fence Agent
 

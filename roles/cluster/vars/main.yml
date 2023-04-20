@@ -55,7 +55,7 @@ int_var_sysctl:
   vm.swappiness: 10
 
 int_var_state_dir: '/var/lib/sles-for-sap-roles'
-int_var_cluster_state: /var/lib/sles-for-sap-roles/.azure_cluster
+int_var_cluster_state: /var/lib/sles-for-sap-roles/.cluster
 
 int_var_sbd_config:
   - {'regexp': '^SBD_PACEMAKER=', 'line': 'SBD_PACEMAKER=yes'}
