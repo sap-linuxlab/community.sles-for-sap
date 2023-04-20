@@ -1,4 +1,9 @@
 ---
+# Create auto_register string
+- name: Create auto_register string
+  ansible.builtin.set_fact:
+    int_fact_auto_register: "{{ auto_register | string | lower }}"
+
 # Load the required variables for this scenario
 - name: Include hana azure sbd cluster_config
   ansible.builtin.include_vars: azure_sbd.yml

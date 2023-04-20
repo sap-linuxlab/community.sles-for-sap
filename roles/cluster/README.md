@@ -113,6 +113,11 @@ specific variables.
   created using eth0 interfaces. If this value is set to `true` the corosync
   configuration will be made up of two rings, the first using eth0 and the
   second using eth1. By deafult, `dual_corosync_rings` is set to `false`.
+* auto_register - bool - the HANA resource agent can automate the
+  registration of the former master node when it rejoins the cluster after a
+  failover. By default `auto_register` is set to `false` and registration must
+  be done manually. However, setting `auto_register` to `true` will enable
+  automatic registration.
 
 ### Required Variables for Azure Fence Agent
 

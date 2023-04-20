@@ -104,7 +104,7 @@ cluster_config:
         InstanceNumber: "{{ hana_instance_number }}"
         PREFER_SITE_TAKEOVER: 'true'
         DUPLICATE_PRIMARY_TIMEOUT: '7200'
-        AUTOMATED_REGISTER: 'false'
+        AUTOMATED_REGISTER: "{{ int_fact_auto_register }}"
   clones:
     sap_hana_topology:
       clone_name: "cln_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}"
