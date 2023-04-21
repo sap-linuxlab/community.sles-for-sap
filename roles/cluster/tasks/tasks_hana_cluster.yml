@@ -1,4 +1,9 @@
 ---
+# Create auto_register string
+- name: Create auto_register string
+  ansible.builtin.set_fact:
+    int_fact_auto_register: "{{ auto_register | string | lower }}"
+
 # Load the required variables for this scenario
 - name: Include hana azure sbd cluster_config
   ansible.builtin.include_vars: azure_sbd.yml
@@ -21,6 +26,11 @@
   ansible.builtin.include_vars: aws_native.yml
   when:
     - platform_aws
+
+- name: Include hana generic sbd cluster_config
+  ansible.builtin.include_vars: generic_sbd.yml
+  when:
+    - platform_generic
 
 - name: Ensure logd is enabled and started
   ansible.builtin.systemd:
@@ -63,7 +73,9 @@
   until: int_reg_crm_status.stdout is regex('1 node configured')
   retries: 10
   timeout: 6
-  when: int_var_node_is_primary
+  when:
+    - int_var_node_is_primary
+    - not ansible_check_mode
 
 - name: Get csync2 configure on non-primary node/s
   ansible.builtin.command:
@@ -94,7 +106,9 @@
   until: int_reg_crm_status.stdout is regex(int_fact_cluster_regex)
   retries: 10
   timeout: 6
-  when: int_var_node_is_primary
+  when:
+    - int_var_node_is_primary
+    - not ansible_check_mode
 
 # Tests suggest that very high load during the HANA cluster phase can
 # cause problems, especially with smaller systems. This block waits for the
@@ -106,6 +120,7 @@
 # Currently, the system will retry 60 times with a 10 second delay. These
 # parameters may be tuneable in a future version.
 - name: Wait for load average to drop
+  when: not ansible_check_mode
   block:
     - name: Set 1m load average target
       ansible.builtin.set_fact:

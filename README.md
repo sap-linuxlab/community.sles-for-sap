@@ -52,9 +52,12 @@ project, see the [Conventions page](Conventions.md).
 
 ## Recommended Versions
 
-This project has used the following key software version.
+This project has used the following software version.
 
-* Ansible 7.1.0
-* Ansible-core 2.14.1
+* python 3.9.6
+* ansible 7.1.0 (installed with pip)
+* ansible-core 2.14.1 (installed with pip)
+* jmespath 1.0.1 (installed with pip)
+* passlib 1.7.4 (installed with pip)
 
 We strongly recommend using these or newer versions when deploying.

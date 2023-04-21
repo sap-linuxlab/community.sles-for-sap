@@ -9,10 +9,11 @@ The following platforms are supported:
 * Azure
 * GCP
 * AWS
+* Generic
 
 The following STONITH methods are supported
 
-* SBD (Azure Only)
+* SBD (Azure and Generic only)
 * Native (Azure, GCP, AWS)
 
 ## Idempotency
@@ -68,32 +69,38 @@ The roles expects the following:
 * Instance tags are set correctly to enable fencing
 * The VIP will be outside of the HANA subnets and is present in the routing table.
 
+### Generic Expectations
+
+The role supports `generic` clustering which is not platform specific. The only
+supported STONITH is `sbd`.
+
 ## Variables
 
-* platform - the platform where the cluster is being configured. Allowed variables
-  are: azure, gcp, aws
-* stonith - the STONITH fencing type to be used. Allowed values are SBD (Azure
-  only) or native.
-* virtual_ip - the Virtual IP address that the cluster will use.
-* hacluster_password - the password to be set for the Linux OS user `hacluster`,
-  the same password will be used on all nodes.
+The sections provides information regarding required, optional and platform
+specific variables.
 
 ### Required variables
 
 * platform - string - the name of the platform, supported platforms are:
-  GCP, AWS & AWS
+  azure, gcp, aws & generic
 * stonith - string - the name of the stonith type to use. Support methods are:
-  sbd & native (will automagically choose the correct native stonith based on the
-  platform)
+  sbd & native (will automagically choose the correct native stonith based on
+  the platform)
 * primary - string - the hostname of the host considered
-  to be the primary host, for HANA, this should be the host that is currently the
-  HANA System Replication master.
+  to be the primary host, for HANA, this should be the host that is currently
+  the HANA System Replication master.
 * virtual_ip - string - the Virtual IP address that the cluster will use.
 * hacluster_password - string - the password to be set for the Linux OS user
   `hacluster`, the same password will be used on all nodes.
 
 ### Optional variable
 
+* use_softdog - bool - when using sbd, a watchdog is necessary. The role can
+  configure the software watchdog `softdog`, but if a hardware or virtual
+  watchdog is available that should be used instead. The role is not capable of
+  configure every possible watchdog, so when setting `use_softdog` to `false`,
+  it is the uses responsibility to ensure that the watchdog is configured.
+  By default, `use_softdog` is set to `true`.
 * sbd_devices - list of string - required when stonith is set to `sbd` is true
 * primary_computer_name - string - some stonith primitives may use an identifier
   that doesn't match the hostname when working cluster members. For example, a
@@ -105,7 +112,12 @@ The roles expects the following:
 * dual_corosync_rings - bool - by default the a single corosync ring will be
   created using eth0 interfaces. If this value is set to `true` the corosync
   configuration will be made up of two rings, the first using eth0 and the
-  second using eth1.
+  second using eth1. By default, `dual_corosync_rings` is set to `false`.
+* auto_register - bool - the HANA resource agent can automate the
+  registration of the former master node when it rejoins the cluster after a
+  failover. By default `auto_register` is set to `false` and registration must
+  be done manually. However, setting `auto_register` to `true` will enable
+  automatic registration.
 
 ### Required Variables for Azure Fence Agent
 
@@ -140,3 +152,7 @@ There are no specific variable requirements for GCP.
   perform stonith actions
 * aws_secret_access_key - string - secret access key of the account to be used
   to perform stonith actions
+
+### Required Variables for generic
+
+There are no specific requirements for the generic platform.

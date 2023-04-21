@@ -1,1 +1,3 @@
 dual_corosync_rings: false
+use_softdog: true
+auto_register: false

@@ -35,6 +35,7 @@
     type: rsa
     size: 4096
   register: int_reg_ssh_keys
+  when: not ansible_check_mode
 
 - name: Add public key to authorized_keys on all hosts
   ansible.builtin.lineinfile:
@@ -43,6 +44,7 @@
     create: true
     mode: '0644'
   loop: "{{ ansible_play_hosts }}"
+  when: not ansible_check_mode
 
 - name: Apply to Authorised Keys
   ansible.posix.authorized_key:
@@ -50,11 +52,13 @@
     state: present
     key: "{{ hostvars[item].int_reg_ssh_keys.public_key }}"
   loop: "{{ ansible_play_hosts }}"
+  when: not ansible_check_mode
 
 - name: Slurp ssh daemon public key
   ansible.builtin.slurp:
     src: '/etc/ssh/ssh_host_ecdsa_key.pub'
   register: int_reg_ssh_pub_keys
+  when: not ansible_check_mode
 
 - name: Ensure hacluster's /.ssh/known_hosts contains ssh daemon public key
   ansible.builtin.known_hosts:
@@ -68,3 +72,4 @@
   loop: "{{ ansible_play_hosts }}"
   loop_control:
     loop_var: idx
+  when: not ansible_check_mode

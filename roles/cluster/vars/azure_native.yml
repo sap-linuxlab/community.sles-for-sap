@@ -91,7 +91,7 @@ cluster_config:
         InstanceNumber: "{{ hana_instance_number }}"
         PREFER_SITE_TAKEOVER: 'true'
         DUPLICATE_PRIMARY_TIMEOUT: '7200'
-        AUTOMATED_REGISTER: 'false'
+        AUTOMATED_REGISTER: "{{ int_fact_auto_register }}"
     virtual_ip:
       primitive_name: "rsc_ip_{{ hana_sid }}_HDB{{ hana_instance_number }}"
       type: 'ocf:heartbeat:IPaddr2'

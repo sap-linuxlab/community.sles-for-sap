@@ -2,9 +2,18 @@
 # Watchdog configuration tasks go here!
 # A watchdog is needed for SBD.
 
-# For Azure, softdog is used, which is not great,
-# but better than nothing. Other watchdogs for other platforms will need to be
-# added we go.
+# softdog works with all systems, but it's always better to use a real or
+# virtual device. The role cannot configure every type of watchdog, only
+# softdog. A user can configure their own watchdog and set 'use_softdog' to
+# to false.
+
+# There's a good chance that a configured watchdog exists that the user is not
+# user is not aware of. If this is the case, softdog should not be loaded.
+
+- name: Check for existing watchdog
+  ansible.builtin.stat:
+    path: '/dev/watchdog'
+  register: int_reg_existing_watchdog
 
 - name: Ensure softdog is configured
   ansible.builtin.lineinfile:
@@ -15,11 +24,11 @@
     mode: '0644'
     regexp: '^softdog'
     line: 'softdog'
-  when: platform_azure
+  when: not int_reg_existing_watchdog.stat.exists
 
 # Ensure the module is loaded.
 - name: Ensure the softdog module is loaded.
   community.general.modprobe:
     name: softdog
     state: present
-  when: platform_azure
+  when: not int_reg_existing_watchdog.stat.exists

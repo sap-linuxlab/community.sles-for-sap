@@ -33,12 +33,10 @@
       play. Ensure that the variable primary matches a host in the play.
     success_msg: >-
       The value of 'primary' matches a host in the play.
-  check_mode: false
 
 - name: Set primary fact
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ primary == inventory_hostname }}"
-  check_mode: false
 
 - name: Set primary and secondary hostname facts
   ansible.builtin.set_fact:
@@ -68,6 +66,7 @@
     platform_azure: "{% if platform == 'azure' %}true{% else %}false{% endif %}"
     platform_gcp: "{% if platform == 'gcp' %}true{% else %}false{% endif %}"
     platform_aws: "{% if platform == 'aws' %}true{% else %}false{% endif %}"
+    platform_generic: "{% if platform == 'generic' %}true{% else %}false{% endif %}"
 
 - name: Collect package information
   ansible.builtin.package_facts:
@@ -204,6 +203,25 @@
       Device {{ item.item }} found
   loop: "{{ int_reg_sbd_device_check.results }}"
   when: stonith_sbd
+
+- name: Check if watchdog is configured when use_softdog is false
+  ansible.builtin.stat:
+    path: '/dev/watchdog'
+  register: int_reg_watchdog
+  when: not use_softdog
+
+- name: Assert that watchdog is configured when use_softdog is false
+  ansible.builtin.assert:
+    that: int_reg_watchdog.stat.exists
+    fail_msg: >-
+      The role has been called with the 'use_softdog' option set to false. This
+      expects the device '/dev/watchdog' to be available but '/dev/watchdog'
+      was not found. You must configure the watchdog before running the role.
+      If no watchdog is available, set 'use_softdog' to 'true' and the softdog
+      will be automatically configured.
+    success_msg: >-
+      The watchdog device was found.
+  when: not use_softdog
 
 # AWS Specific pre-checks
 - name: Ensure that AWS specific variables are supplied

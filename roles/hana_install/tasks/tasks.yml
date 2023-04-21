@@ -2,22 +2,18 @@
 - name: Ensure that HANA sar file is unpacked
   ansible.builtin.command:
     "{{ sapcar_binary }} -xf {{ hana_sar }} -R {{ hana_unpack_directory }} -manifest SIGNATURE.SMF"
+  args:
+    creates: "{{ hana_unpack_directory }}/SAP_HANA_DATABASE"
   when: not int_fact_hana_installed
 
 - name: Ensure copy of manifest file exists
   ansible.builtin.copy:
-    src: "{{ hana_unpack_directory }}//{{ int_var_manifest_filename }}"
+    src: "{{ hana_unpack_directory }}/{{ int_var_manifest_filename }}"
     remote_src: true
     dest: "{{ hana_unpack_directory }}/{{ int_var_hana_unpack_name }}/{{ int_var_manifest_filename }}"
     owner: "root"
     group: "root"
     mode: "0600"
-  when: not int_fact_hana_installed
-
-- name: Ensure original manifest file is removed
-  ansible.builtin.file:
-    path: "{{ hana_unpack_directory }}//{{ int_var_manifest_filename }}"
-    state: absent
   when: not int_fact_hana_installed
 
 - name: Create temporary HANA install configuration file

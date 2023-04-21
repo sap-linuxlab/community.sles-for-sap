@@ -51,6 +51,7 @@
   ansible.builtin.include_tasks: tasks_sbd_watchdog.yml
   when:
     - stonith_sbd
+    - use_softdog
     - not int_fact_cluster_configured
 
 - name: Prepare the hacluster user

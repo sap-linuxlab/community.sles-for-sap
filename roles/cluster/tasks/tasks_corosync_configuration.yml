@@ -12,6 +12,10 @@
   ansible.builtin.include_vars: aws_corosync.yml
   when: platform_aws
 
+- name: Load generic corosync variables
+  ansible.builtin.include_vars: generic_corosync.yml
+  when: platform_generic
+
 # A cluster requires the same authkey to be present on all nodes, the next
 # three tasks collect the authkey data and ascertain whether or not a new
 # needs to be created and distributed.
@@ -109,7 +113,7 @@
         mode: push
         set_remote_user: false
       delegate_to: "{{ primary }}"
-      when: inventory_hostname != primary
+      when: inventory_hostname != primary and not ansible_check_mode
 
 - name: Ensure single ring corosync.conf is populated
   ansible.builtin.template:

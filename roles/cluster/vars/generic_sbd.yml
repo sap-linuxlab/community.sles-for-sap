@@ -1,53 +1,25 @@
 cluster_config:
   properties:
-    stonith-timeout: '600'
+    stonith-timeout: '150'
     stonith-enabled: "true"
+    have-watchdog: 'true'
   op_defaults:
     timeout: '600'
+    record-pending: 'true'
   rsc-options:
     resource-stickiness: '1000'
     migration-threshold: '5000'
   primitives:
-    aws_azure:
-      primitive_name: 'rsc_aws_stonith'
-      type: 'stonith:external/ec2'
+    stonith_sbd:
+      primitive_name: 'stonith-sbd'
+      type: 'stonith:external/sbd'
       params:
         name: 'params'
-        tag: "{{ aws_stonith_tag }}"
-        profile: 'stonith'
-        pcmk_delay_max: '45'
+        pcmk_delay_max: '15'
       op_monitor:
         name: 'op monitor'
-        interval: '300'
-        timeout: '120'
-      op_start:
-        name: 'op start'
-        interval: '0'
-        timeout: '180'
-      _:
-        name: 'op stop'
-        interval: '0'
-        timeout: '180'
-      meta:
-        name: 'meta'
-        target-role: 'Started'
-    aws_vip:
-      primitive_name: "rsc_aws_vip_{{ hana_sid }}_HDB{{ hana_instance_number }}"
-      type: 'ocf:suse:aws-vpc-move-ip'
-      params:
-        name: 'params'
-        ip: "{{ virtual_ip }}"
-        routing_table: "{{ aws_route_table_id }}"
-        interface: 'eth0'
-        profile: 'stonith'
-      op_start:
-        name: 'op start'
-        interval: '0'
-        timeout: '180'
-      op_stop:
-        name: 'op stop'
-        interval: '0'
-        timeout: '180'
+        interval: '600'
+        timeout: '15'
     sap_hana_topology:
       primitive_name: "rsc_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}"
       type: 'ocf:suse:SAPHanaTopology'
@@ -105,6 +77,19 @@ cluster_config:
         PREFER_SITE_TAKEOVER: 'true'
         DUPLICATE_PRIMARY_TIMEOUT: '7200'
         AUTOMATED_REGISTER: "{{ int_fact_auto_register }}"
+    virtual_ip:
+      primitive_name: "rsc_ip_{{ hana_sid }}_HDB{{ hana_instance_number }}"
+      type: 'ocf:heartbeat:IPaddr2'
+      meta:
+        name: 'meta'
+        target-role: 'Started'
+      op_monitor:
+        name: 'op monitor'
+        interval: '10s'
+        timeout: '20s'
+      params:
+        name: 'params'
+        ip: "{{ virtual_ip }}"
   clones:
     sap_hana_topology:
       clone_name: "cln_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}"
@@ -120,7 +105,6 @@ cluster_config:
       resource: "rsc_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}"
       meta:
         name: 'meta'
-        notify: 'true'
         clone-max: '2'
         clone-node-max: '1'
         target-role: 'Started'
@@ -130,12 +114,12 @@ cluster_config:
       colo_name: "col_saphana_ip_{{ hana_sid }}_HDB{{ hana_instance_number }}"
       score: 2000
       members:
-        - rsc_aws_vip_{{ hana_sid }}_HDB{{ hana_instance_number }}:Started
+        - rsc_ip_{{ hana_sid }}_HDB{{ hana_instance_number }}:Started
         - msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}:Master
   orders:
     hana:
       order_name: "ord_SAPHana_{{ hana_sid }}_HDBP{{ hana_instance_number }}"
-      kind: 2000
+      kind: "Optional"
       members:
         - cln_SAPHanaTopology_{{ hana_sid }}_HDB{{ hana_instance_number }}
         - msl_SAPHana_{{ hana_sid }}_HDB{{ hana_instance_number }}
