@@ -33,12 +33,10 @@
       play. Ensure that the variable primary matches a host in the play.
     success_msg: >-
       The value of 'primary' matches a host in the play.
-  check_mode: false
 
 - name: Set primary fact
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ primary == inventory_hostname }}"
-  check_mode: false
 
 - name: Set primary and secondary hostname facts
   ansible.builtin.set_fact:
