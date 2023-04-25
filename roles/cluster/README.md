@@ -99,7 +99,7 @@ specific variables.
   configure the software watchdog `softdog`, but if a hardware or virtual
   watchdog is available that should be used instead. The role is not capable of
   configure every possible watchdog, so when setting `use_softdog` to `false`,
-  it is the uses responsibility to ensure that the watchdog is configured.
+  it is the user's responsibility to ensure that the watchdog is configured.
   By default, `use_softdog` is set to `true`.
 * sbd_devices - list of string - required when stonith is set to `sbd` is true
 * primary_computer_name - string - some stonith primitives may use an identifier
