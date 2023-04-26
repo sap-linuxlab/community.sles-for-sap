@@ -100,6 +100,8 @@ used.
   '30\<hana_instance_number\>'.
 * hana_group_id - The group ID of sapsys.  The value need to be a positive
   integer.  The UID must be free.  Default: '79'
+* hana_autostart - Used to control if HANA should start on with the OS or
+  manually. For clustering, HANA should not start with the OS. Default: 'n'.
 
 ## Check mode
 
