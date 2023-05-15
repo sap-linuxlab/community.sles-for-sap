@@ -61,3 +61,13 @@ This project has used the following software version.
 * passlib 1.7.4 (installed with pip)
 
 We strongly recommend using these or newer versions when deploying.
+
+On SUSE Linux Enterprise Server 15 SP4 or newer, the requirements can be installed
+using the following commands:
+
+```
+# add Python 3 repository
+SUSEConnect -p sle-module-python3/15.4/x86_64
+# Install Python 3.10 and all other requirements
+sudo zypper in -y python310-pip && pip3 install -r requirements.txt
+```
