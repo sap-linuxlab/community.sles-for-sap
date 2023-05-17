@@ -1,0 +1,63 @@
+---
+- name: Crete temporary directory names
+  ansible.builtin.set_fact:
+    tmp_sapinst_dir: "/tmp/sapinst_unpack{{ lookup('community.general.random_string', length=12, special=false) }}"
+    tmp_install_from_dir: "/tmp/sapinst_install_from{{ lookup('community.general.random_string', length=12, special=false) }}"
+
+- name: Ensure sapinst group is present
+  ansible.builtin.group:
+    name: sapinst
+    state: present
+
+- name: Ensure root is a member of the sapinst group
+  ansible.builtin.user:
+    name: root
+    groups: sapinst
+    append: true
+
+- name: Create extract directory for SWPM
+  ansible.builtin.file:
+    path: "{{ tmp_sapinst_dir }}"
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0700'
+
+- name: Create temporary directory
+  ansible.builtin.file:
+    path: "{{ tmp_install_from_dir }}"
+    state: 'directory'
+    owner: 'root'
+    group: 'sapinst'
+    mode: '0770'
+
+- name: Unpack sapinst
+  ansible.builtin.command: >-
+    {{ sapcar_exe }} -xvf {{ sapinst_sar }} -R {{ tmp_sapinst_dir }} -manifest SIGNATURE.SMF
+  args:
+    creates: "{{ tmp_sapinst_dir }}/SIGNATURE.SMF"
+
+- name: Populate OneHost S4HANA2022 template
+  ansible.builtin.template:
+    src: 'templates/HANA2020_OneHost.j2'
+    dest: "{{ tmp_sapinst_dir }}/inifile.params"
+    owner: root
+    group: root
+    mode: '0600'
+  when:
+    - install_mode == 'guided'
+    - guided_product_id == 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP'
+
+- name: Run the install
+  ansible.builtin.command: >-
+    {{ tmp_sapinst_dir }}/sapinst \
+    SAPINST_EXECUTE_PRODUCT_ID='NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP' \
+    SAPINST_INPUT_PARAMETERS_URL='{{ tmp_sapinst_dir }}/inifile.params' \
+    SAPINST_SKIP_DIALOGS=true
+  args:
+    chdir: "{{ tmp_install_from_dir }}"
+  when:
+    - install_mode == 'guided'
+    - guided_product_id == 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP'
+  async: 7200 # Three hours should be long enough for a basic install
+  poll: 60 # Check every minute

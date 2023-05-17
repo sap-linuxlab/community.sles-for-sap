@@ -1,0 +1,36 @@
+int_var_required_variables:
+  - 'sapcar_exe'
+  - 'sapinst_sar'
+  - 'install_mode'
+
+int_var_install_mode_support:
+  - 'guided'
+
+int_var_guided_required_variables:
+  - 'guided_product_id'
+
+int_var_guided_product_support:
+  - 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP'
+
+int_var_guided_s4hana2022_onehost_required_variables:
+  - 'guided_s4_sid'
+  - 'guided_master_password'
+  - 'guided_ascs_instance_number'
+  - 'guided_ci_instance_number' # note that the CI instance number is the PAS instance number
+  - 'guided_hana_hostname'
+  - 'guided_hana_sid'
+  - 'guided_hana_instance'
+  - 'guided_hana_systemdb_system_password'
+  - 'guided_hana_admin_user_password'
+  - 'guided_sapexe_sar_path'
+  - 'guided_igs_sar_path'
+  - 'guided_igs_helper_sar_path'
+  - 'guided_sapexedb_sar_path'
+  - 'guided_media_path'
+
+int_var_reserved_sids:
+  ["ADD", "ALL", "AMD", "AND", "ANY", "ARE", "ASC", "AUX", "AVG", "BIT", "CDC",
+   "COM", "CON", "DBA", "END", "EPS", "FOR", "GET", "GID", "IBM", "INT", "KEY",
+   "LOG", "LPT", "MAP", "MAX", "MIN", "MON", "NIX", "NOT", "NUL", "OFF", "OLD",
+   "OMS", "OUT", "PAD", "PRN", "RAW", "REF", "ROW", "SAP", "SET", "SGA", "SHG",
+   "SID", "SQL", "SUM", "SYS", "TMP", "TOP", "UID", "USE", "USR", "VAR"]

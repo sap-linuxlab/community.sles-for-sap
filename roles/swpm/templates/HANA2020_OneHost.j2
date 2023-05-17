@@ -1,0 +1,128 @@
+##########################################################################################################################################################################################################
+#                                                                                                                                                                                                        #
+# Installation service 'SAP S/4HANA Server 2022 > SAP HANA Database > Installation > Application Server ABAP > Standard System > Standard System', product id 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP' #
+#                                                                                                                                                                                                        #
+##########################################################################################################################################################################################################
+#
+# This template installs a simple S4 HANA system on a single host and is recommended only for testing and demo purposes.
+# It is expected that the target HANA database exists as well as the tenant.
+# All of the default or commented out values of this template have been removed for readability
+# The following components do not get installed/configured:
+#
+# * Diagnostics Agent
+# * SAP Predictive Analytics integrator
+# * TLS comms between the app and DB
+# * SLD
+# * liveCache
+##########################################################################################################################################################################################################
+
+# The name of the database schema.
+HDB_Schema_Check_Dialogs.schemaName = SAPHANADB
+
+# The password of the database schema.
+HDB_Schema_Check_Dialogs.schemaPassword = {{ guided_master_password }}
+
+# Standard system with AS ABAP only: ASCS instance number. Leave empty for default.
+NW_CI_Instance.ascsInstanceNumber = {{ guided_ascs_instance_number }}
+
+# Standard system with AS ABAP only: Virtual host name for the ASCS instance. Leave empty for default.
+NW_CI_Instance.ascsVirtualHostname = {{ guided_ascs_virtual_hostname }}
+
+# Instance number of the primary application server instance. Leave empty for default.
+NW_CI_Instance.ciInstanceNumber = {{ guided_ci_instance_number }}
+
+# Virtual host name of the primary application server instance . Leave empty for default.
+NW_CI_Instance.ciVirtualHostname = {{ guided_ci_virtual_hostname }}
+
+# Standard system with AS Java only: Virtual host name for the SCS instance. Leave empty for default.
+NW_CI_Instance.scsVirtualHostname = {{ guided_scs_virtual_hostname }}
+
+# Are the passwords for the DDIC users different from the default value? Possible values are 'true' or 'false'. Leave empty for default.
+NW_DDIC_Password.needDDICPasswords = false
+
+# Specify whether the all operating system users are to be removed from group 'sapinst' after the execution of Software Provisioning Manager has completed.
+NW_Delete_Sapinst_Users.removeUsers = true
+
+# Master password
+NW_GetMasterPassword.masterPwd = {{ guided_master_password }}
+
+# The SAP system ID <SAPSID> of the system to be installed
+NW_GetSidNoProfiles.sid = {{ guided_s4_sid }}
+
+# ABAP schema name
+NW_HDB_DB.abapSchemaName = SAPHANADB
+
+# Password of the ABAP schema user
+NW_HDB_DB.abapSchemaPassword = {{ guided_master_password }}
+
+# Password of the DBACOCKPIT user
+NW_HDB_DB.dbacockpitPassword = {{ guided_master_password }}
+
+# Install SAP Predictive Analytics integrator (PAi) in UDI mode. Possiable values 'stack', 'true' or 'false'. Default value is 'stack'(install PAi is found in stack.xml).
+NW_HDB_DB.installPAi = false
+
+# Database host
+NW_HDB_getDBInfo.dbhost = {{ guided_hana_hostname }}
+
+# Database system ID
+NW_HDB_getDBInfo.dbsid = {{ guided_hana_sid }}
+
+# The instance number of the SAP HANA database server
+NW_HDB_getDBInfo.instanceNumber = {{ guided_hana_instance }}
+
+# Password of user 'SYSTEM' within the 'SystemDB' tenant in an SAP HANA MultiDB server
+NW_HDB_getDBInfo.systemDbPassword = {{ guided_hana_systemdb_system_password }}
+
+# Password of  SAP HANA administration database user.'
+NW_HDB_getDBInfo.systemPassword = {{ guided_hana_systemdb_system_password }}
+
+# SAP HANA system ID
+NW_HDB_getDBInfo.systemid = {{ guided_hana_tenant_sid }}
+
+# Password of the webadm user.
+NW_IcmAuth.webadmPassword = {{ guided_master_password}}
+
+# Location for HANA backup files on the HANA database host (Target location for ABAP export archives). Default value: /usr/sap/<SID>/HDB<nn>/backup/data/<Database_name>
+NW_Recovery_Install_HDB.extractLocation = /usr/sap/{{ guided_hana_sid}}/HDB{{ guided_hana_instance }}/backup/data/DB_{{ guided_hana_tenant_sid }}
+
+# The password of the OS HANA '<dbsid>adm' user
+NW_Recovery_Install_HDB.sidAdmPassword = {{ guided_hana_admin_user_password }}
+
+# DEPRECATED, DO NOT USE!
+NW_SAPCrypto.SAPCryptoFile = {{ guided_sapexe_sar_path }}
+
+# DEPRECATED, DO NOT USE!
+NW_Unpack.igsExeSar = {{ guided_igs_sar_path }}
+
+# DEPRECATED, DO NOT USE!
+NW_Unpack.igsHelperSar = {{ guided_igs_helper_sar_path }}
+
+# DEPRECATED, DO NOT USE!
+NW_Unpack.sapExeDbSar = {{ guided_sapexedb_sar_path }}
+
+# DEPRECATED, DO NOT USE!
+NW_Unpack.sapExeSar = {{ guided_sapexe_sar_path }}
+
+# Number of Batch Work Processes. Leave empty for default.
+# NW_WPConfiguration.ciBtcWPNumber = 6
+
+# Number of Dialog Work Processes. Leave empty for default.
+# NW_WPConfiguration.ciDialogWPNumber = 10
+
+# The FQDN of the system
+NW_getFQDN.FQDN = {{ guided_network_domain }}
+
+# The load type chosen by the user. Valid values are: 'SAP', 'STD', 'OBR', 'HCP', 'MDA', 'HBR', 'SBR'
+NW_getLoadType.loadType = SAP
+
+# The folder containing all archives that have been downloaded from http://support.sap.com/swdc and are supposed to be used in this procedure
+archives.downloadBasket = {{ guided_media_path }}
+
+# Password for the 'sapadm' user of the SAP Host Agent
+hostAgent.sapAdmPassword = {{ guided_master_password}}
+
+# The password of the '<sapsid>adm' user
+nwUsers.sidadmPassword = {{ guided_master_password }}
+
+# Instance number of the SAP HANA Database server
+storageBasedCopy.hdb.instanceNumber = {{ guided_hana_instance }}
