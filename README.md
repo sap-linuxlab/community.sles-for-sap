@@ -1,6 +1,7 @@
 # SLES for SAP Ansible Roles
 
-![markdown badge](https://github.com/sap-linuxlab/community.sles-for-sap/actions/workflows/markdown-lint.yml/badge.svg)
+[![GitHub Super-Linter](https://github.com/sap-linuxlab/community.sles-for-sap/workflows/Lint%20Code%20Base/badge.svg)]
+(https://github.com/marketplace/actions/super-linter)
 
 This collection of roles is currently in development
 
