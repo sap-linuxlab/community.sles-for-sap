@@ -65,7 +65,7 @@ We strongly recommend using these or newer versions when deploying.
 On SUSE Linux Enterprise Server 15 SP4 or newer, the requirements can be
 installed using the following commands:
 
-```
+```shell
 # add Python 3 repository
 SUSEConnect -p sle-module-python3/15.4/x86_64
 # Install Python 3.10 and all other requirements
