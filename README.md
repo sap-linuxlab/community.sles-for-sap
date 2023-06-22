@@ -62,8 +62,8 @@ This project has used the following software version.
 
 We strongly recommend using these or newer versions when deploying.
 
-On SUSE Linux Enterprise Server 15 SP4 or newer, the requirements can be installed
-using the following commands:
+On SUSE Linux Enterprise Server 15 SP4 or newer, the requirements can be
+installed using the following commands:
 
 ```
 # add Python 3 repository
