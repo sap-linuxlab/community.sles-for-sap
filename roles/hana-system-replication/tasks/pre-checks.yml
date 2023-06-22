@@ -11,6 +11,9 @@
 - name: Include hdbsql checks
   ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
 
+- name: Ensure HANA is running
+  ansible.builtin.include_tasks: ../shared/tasks/pre-check-hana-is-running.yml
+
 - name: Gather package facts
   ansible.builtin.package_facts:
   check_mode: false
