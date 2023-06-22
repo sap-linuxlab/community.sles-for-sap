@@ -1,4 +1,19 @@
 ---
+- name: Include hana sid and instance variables
+  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
+
+- name: Include hdbsql variables
+  ansible.builtin.include_vars: ../shared/vars/hdbsql-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
+
+- name: Ensure HANA is running
+  ansible.builtin.include_tasks: ../shared/tasks/pre-check-hana-is-running.yml
+
 - name: Assert that required variables are defined and populated
   ansible.builtin.assert:
     that:
@@ -29,18 +44,6 @@
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ hana_system_replication_primary == inventory_hostname }}"
   check_mode: false
-
-- name: Include hana sid and instance variables
-  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
-
-- name: Include hana sid and instance checks
-  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
-
-- name: Include hdbsql variables
-  ansible.builtin.include_vars: ../shared/vars/hdbsql-vars.yml
-
-- name: Include hana sid and instance checks
-  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
 
 - name: Gather package facts
   ansible.builtin.package_facts:
