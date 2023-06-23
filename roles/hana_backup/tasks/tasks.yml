@@ -33,6 +33,7 @@
       # writing to files that are ephemeral, therefore these DB operation are
       # not considered to be changes
       changed_when: false
+      no_log: true
 
     # It's not ideal to use command and cat like this, but the alternative is to
     # copy the remote files back to the controller which is probably a worse
@@ -63,6 +64,7 @@
       # condition, but to solve a linting error it is required to repeat it
       # here.
       when: backup_needed
+      no_log: true
 
   always:
     # Unfortunately, you can't currently use loops within blocks, so we'll need

@@ -234,6 +234,7 @@
         {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_sys_rep_tier_count_query_file }} -o {{ int_fact_sys_rep_tier_count_result_file }}
       changed_when: false
       check_mode: false
+      no_log: true
 
     - name: Read tenant information
       community.general.read_csv:
@@ -258,11 +259,6 @@
         state: absent
       changed_when: false
       check_mode: false
-
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ int_reg_number_of_configured_tiers }}"
-  when: int_var_node_is_primary
 
 - name: Assert a three tier configuration is not present
   ansible.builtin.assert:
@@ -323,6 +319,7 @@
         {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_sys_rep_general_query_file }} -o {{ int_fact_sys_rep_general_result_file }}
       changed_when: false
       check_mode: false
+      no_log: true
 
     - name: Read SAP HANA System Replication configuration
       community.general.read_csv:

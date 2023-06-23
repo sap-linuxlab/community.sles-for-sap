@@ -1,4 +1,9 @@
 ---
+# This check was initial a pre-check for other roles but works well as a
+# post-check here
+- name: Ensure HANA is running
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-is-running.yml
+
 - name: Check HANA directories
   ansible.builtin.stat:
     path: "{{ item }}"
@@ -29,11 +34,6 @@
   changed_when: false
   when: int_fact_hana_installed
   check_mode: false
-
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ item }}"
-  loop: "{{ int_reg_hana_post_install_ps.stdout_lines }}"
 
 - name: Create process list fact
   ansible.builtin.set_fact:
