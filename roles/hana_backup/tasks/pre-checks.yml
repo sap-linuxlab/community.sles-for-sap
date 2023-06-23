@@ -12,7 +12,7 @@
   ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
 
 - name: Ensure HANA is running
-  ansible.builtin.include_tasks: ../shared/tasks/pre-check-hana-is-running.yml
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-is-running.yml
 
 - name: Ensure required variables are defined
   ansible.builtin.assert:
