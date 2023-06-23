@@ -31,6 +31,7 @@
     src: templates/hana_install.j2
     dest: "{{ int_reg_tmp_hana_install_config.path }}"
   when: not int_fact_hana_installed
+  no_log: true
 
 - name: Ensure HANA is installed
   ansible.builtin.command:
