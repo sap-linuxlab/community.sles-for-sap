@@ -13,11 +13,6 @@
   ansible.builtin.set_fact:
     int_fact_hana_status_lines: "{{ int_reg_hana_status.stdout | regex_findall('^hdb.*', multiline=true) }}"
 
-- name: Show me what you got?
-  ansible.builtin.debug:
-    msg: "{{ (item | split(', '))[2] }}"
-  loop: "{{ int_fact_hana_status_lines }}"
-
 - name: Assert all HANA services are correctly started
   ansible.builtin.assert:
     that: "{{ (item | split(', '))[2] == 'GREEN' }}"

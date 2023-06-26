@@ -4,6 +4,26 @@
 - name: Ensure HANA is running
   ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-is-running.yml
 
+# Tasks to discover if HANA is in system replication target (and is therefore
+# not listening on different ports)
+
+- name: Get system replication status
+  ansible.builtin.shell: >-
+    . ~/.bashrc &&
+    hdbnsutil -sr_state
+  become_user: "{{ hana_sid | lower }}adm"
+  register: int_reg_hsr_status
+  changed_when: false
+  failed_when: false
+
+- name: Set HANA System Replication fact
+  ansible.builtin.set_fact:
+    int_fact_hsr_status: "{{ int_reg_hsr_status.stdout | regex_findall('^mode.*', multiline=true) }}"
+
+- name: Set HANA Replication mode fact
+  ansible.builtin.set_fact:
+    int_fact_hsr_mode: "{{ (int_fact_hsr_status[0] | split(': '))[1] | default('') }}"
+
 - name: Check HANA directories
   ansible.builtin.stat:
     path: "{{ item }}"
@@ -66,7 +86,9 @@
   loop: "{{ int_var_min_hana_ports }}"
   changed_when: false
   ignore_errors: true
-  when: int_fact_hana_installed
+  when:
+    - int_fact_hana_installed
+    - int_fact_hsr_mode == 'primary' or int_fact_hsr_mode == 'none'
 
 - name: Assert expected HANA ports are open
   ansible.builtin.assert:
@@ -77,4 +99,6 @@
     success_msg: >-
       The port {{ item.invocation.module_args.port }} is open as expected.
   loop: "{{ int_reg_hana_ports.results }}"
-  when: int_fact_hana_installed
+  when:
+    - int_fact_hana_installed
+    - int_fact_hsr_mode == 'primary' or int_fact_hsr_mode == 'none'
