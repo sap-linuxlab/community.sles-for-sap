@@ -1,0 +1,8 @@
+- name: Assert that OS is SLES for SAP
+  ansible.builtin.assert:
+    that: ansible_facts.distribution == 'SLES_SAP'
+    fail_msg: >-
+      This role requires SLES for SAP, but the detected operating system is
+      {{ ansible_facts.distribution }}. Use SLES for SAP when running this role.
+    success_msg: >-
+      SLES for SAP was discovered.

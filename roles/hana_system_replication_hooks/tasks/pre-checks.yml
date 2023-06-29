@@ -1,4 +1,7 @@
 ---
+- name: Ensure OS is SLES for sap
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-is-sles-for-sap.yml
+
 - name: Include hana sid and instance variables
   ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
 
