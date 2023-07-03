@@ -21,10 +21,11 @@ The following variable is optional.
 * use_suseconnect - if `true`, the role will use `SUSEConnect` and will not
   search for `registercloudguest`.  Default is `false`.
 
-## Check mode
+## Check Mode
 
 This role supports check mode.  Check mode demonstrate the actions that will be
 taken if the role were to be run.  As no ansible modules for SLES registration
 exist, a lot of the role relies on using the `ansible.builtin.command` module,
-which fully support check mode.  However, the task `Print required action` will
-provide a good summary of the action the role would take if run normally.
+which doesn't fully support check mode.  However, the task
+`Print required action` will provide a good summary of the action the role would
+take if run normally.

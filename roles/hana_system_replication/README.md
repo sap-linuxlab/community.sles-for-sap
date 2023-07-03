@@ -13,7 +13,7 @@ The role performs the following tasks:
 
 ## Variables
 
-### Required variables
+### Required Variables
 
 * hana-sid - the three character 'System ID' of the HANA installation.
 * instance number - the two digit instance ID of the HANA installation.
@@ -32,7 +32,7 @@ The elements of the `hana_system_replication_nodes` are as follows.
 Exactly **two** elements should be specified. See the example playbooks in the
 [playbooks directory](../../playbooks).
 
-### Optional variables
+### Optional Variables
 
 * systemdb_user - The user to make changes to the HANA database. Default is
   'SYSTEM'
@@ -56,7 +56,7 @@ The role requires:
 * The ability for the root user of both hosts to 'ssh' to the other host
   password-free
 
-## Additional Information and upcoming features
+## Additional Information and Upcoming Features
 
 This role currently configures HANA System Replication using the primary
 network interface (eth0 or equivalent). A future release will allow the user to
@@ -67,9 +67,8 @@ parameter for additional security.
 
 If a HANA System Replication configuration is discovered that doesn't match the
 desired configuration the role will fail with a meaningful message. A future
-release will provide the
-a 'destructive' option which will destroy any pre-existing configuration and
-then apply the new configuration.
+release will provide the a 'destructive' option which will destroy any
+pre-existing configuration and then apply the new configuration.
 
 Currently, the role configures HANA System Replication and quits. Another
 possible new feature will be to choose to wait until the initial sync is

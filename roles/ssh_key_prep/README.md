@@ -4,7 +4,7 @@ This role creates and distributes the relevant files that allow password-free
 login between the hosts in the play as root. Password-free login as root is a
 prerequisite for the `cluster` and `hana_system_replication` role.
 
-The role creates a ssh keypair on each host for root. The
+The role creates a ssh keypair on each host for the root user. The
 public keys of all hosts in the play are shared with all of the other nodes in
 the play. In addition, the relevant data is added to the known hosts file for
 each host.

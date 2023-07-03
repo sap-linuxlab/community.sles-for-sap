@@ -6,16 +6,13 @@ The `saptune` role ensures that SLES hosts have:
 * conflicting services stopped and disabled
 * the requested saptune solution applied
 
-**IMPORTANT**, this role does not install saptune.  Package management it
-outside of the scope of this role.  If saptune is not installed, the role will
-fail with a meaningful error.
-
-**IMPORTANT**, this role only works with saptune 3.0 or newer.  If a version
-older than 3.0 is discovered, the role with fail with a meaningful error.
-
 **IMPORTANT**, this role deals with saptune `solutions` only.  It will apply and
 revert solutions as necessary.  Any sapnotes applied or removed by saptune by a
 user are out of the scope of this role.
+
+## Package Requirements
+
+* saptune >= 3.0
 
 ## Variables
 
@@ -47,7 +44,8 @@ host and record the output.
 ## Check mode
 
 This role supports check mode.  Check mode demonstrate the actions that will be
-taken if the role were to be run.  As no ansible modules for SLES registration
-exist, a lot of the role relies on using the `ansible.builtin.command` module,
-which fully support check mode.  However, the task `Print required action` will
-provide a good summary of the action the role would take if run normally.
+taken if the role were to be run.  As no ansible modules for saptune exist, a
+lot of the role relies on using the `ansible.builtin.command` module,
+which doesn't fully support check mode.  However, the task
+`Print required action` will provide a good summary of the action the role would
+take if run normally.
