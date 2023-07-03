@@ -171,7 +171,7 @@ specific variables.
 
 ### Required Variables for Azure Fence Agent
 
-To create the Azure Fence Agent, follow the instructions [here](https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker#use-an-azure-fence-agent-1).
+To create the Azure Fence Agent, follow the instructions[here](https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker#use-an-azure-fence-agent-1).
 Currently, this role supports the Azure Fence Agent when using a service
 principle, although managed identity may be supported in the future. When using
 the Azure Fence Agent the following variables are required. The
@@ -186,7 +186,7 @@ the Azure Fence Agent the following variables are required. The
 
 ### Required Variables for GCP
 
-There are no specific variable requirements for GCP.
+There are no specific requirements for GCP.
 
 ### Required Variables for AWS
 
