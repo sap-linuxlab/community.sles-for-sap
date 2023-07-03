@@ -37,7 +37,7 @@ and can be omitted.
 
 **Note** `extra_file_system_arguments` is optional and can be omitted.
 
-## Example configuration
+## Example Configuration
 
 ```yaml
 sap_storage_config:
@@ -56,6 +56,6 @@ sap_storage_config:
     mount_options: "noatime,nodiratime,logbsize=256k"
 ```
 
-## Check mode
+## Check Mode
 
 Check mode is not currently supported for this role.

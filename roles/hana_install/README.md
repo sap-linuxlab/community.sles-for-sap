@@ -9,13 +9,15 @@ The role performs the following tasks:
 * Unpacks the HANA installation SAR file
 * Installs HANA
 
-## Supported versions
+## Supported Versions
 
 ### HANA
 
 Currently, this role supports HANA 2.0 SPS 5 and later.
 
 There are no plans to support earlier version.
+
+## Required Packages
 
 HANA 2.0 SPS5 and SPS6 require different minimum versions of the following
 packages:
@@ -31,7 +33,6 @@ information see [SAPNOTE 2235581 - SAP HANA: Supported Operating Systems](https:
 
 This roles supports:
 
-* SLES 12 SPS5
 * SLES 15 (all service packs)
 
 ## Idempotency
@@ -45,7 +46,7 @@ in to consideration.
 
 The following variables are used with the role
 
-### Required variables
+### Required Variables
 
 * sapcar_binary - the full path to the sapcar binary required to unpack the
   hana installation SAR file.
@@ -64,7 +65,7 @@ The role pre-checks will ensure that all required variables are populated and
 correct. If any of the pre-checks fail, Ansible will print a meaningful error
 with instructions on how to correct the issues.
 
-### Optional variables
+### Optional Variables
 
 The following options are optional, if they are not specified, defaults will be
 used.
@@ -103,7 +104,7 @@ used.
 * hana_autostart - Used to control if HANA should start on with the OS or
   manually. For clustering, HANA should not start with the OS. Default: 'n'.
 
-## Check mode
+## Check Mode
 
 The role works correctly in check mode.
 

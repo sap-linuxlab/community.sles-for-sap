@@ -29,11 +29,61 @@ A future release will support a fully idempotent approach which will compare the
 current cluster state with the desired state and only make changes when changes
 are required.
 
-## Expectation
+## Package Requirements
+
+This role requires the following packages to be installed:
+
+* corosync
+* crmsh
+* fence-agents
+* ha-cluster-bootstrap
+* pacemaker
+* patterns-ha-ha_sles
+* resource-agents
+* cluster-glue
+* socat
+* libxml2-tools
+* ClusterTools2
+* SAPHanaSR
+* rsyslog
+
+For SLES 15.3 and earlier, some specific package versions are required:
+
+* SAPHanaSR >= 0.162.1
+* socat >= "1.7.3.2
+* ClusterTools2 >= 3.1.2
+* libxml2-tools >= 2.9.7
+
+For SLES 15.4 and later, the following specific package versions are required:
+
+* SAPHanaSR >= 0.162.1
+* socat >= 1.7.3.2
+* ClusterTools2 >= 3.1.2
+* libxml2-tools >= 2.9.14
+
+GCP has the following additional package requirements:
+
+* python3-httplib2
+* python3-google-auth-httplib2
+* python3-google-api-python-client
+
+Azure has the following additional package requirements:
+
+* python3-azure-mgmt-compute
+* python3-azure-identity
+
+## Expectations
 
 The following expectation must be met for this role to work correctly. Where
 possible, expectations are tested during the pre-checks phase, however, it is
 not always practical or possible to check expectations.
+
+### General expectations
+
+Currently, the role can only run with two hosts. Ensure the role is called with
+a playbook that only sources two hosts only.
+
+To create multiple clusters, the role must be run once for each cluster.
 
 ### Azure Expectations
 

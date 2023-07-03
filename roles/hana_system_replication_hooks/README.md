@@ -28,7 +28,7 @@ Many of the variables used in the `hana-system-replication` can be reused here.
 However, like all of the roles in the collection, this role can be used
 independently of the other roles.
 
-### Required variables
+### Required Variables
 
 * hana-sid - the three character 'System ID' of the HANA installation.
 * instance number - the two digit instance ID of the HANA installation.
@@ -36,7 +36,7 @@ independently of the other roles.
 * hana_system_replication_primary - the hostname of the primary node
 * hana_system_replication_secondary - the hostname of the secondary node
 
-### Optional variables
+### Optional Variables
 
 * always_check_traces - enables the checking of HANA trace files for the correct
   installation of the System Replication hooks regardless of the system state.
