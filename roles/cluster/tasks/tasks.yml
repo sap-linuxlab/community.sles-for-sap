@@ -64,8 +64,10 @@
 
 - name: Configure HANA cluster
   ansible.builtin.include_tasks: tasks_hana_cluster.yml
-  when:
-    - not int_fact_cluster_configured
+  when: not int_fact_cluster_configured
+
+- name: Configure HAWK
+  ansible.builtin.include_tasks: tasks_hawk.yml
 
 - name: Create state directory
   ansible.builtin.file:

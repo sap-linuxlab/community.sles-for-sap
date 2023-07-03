@@ -274,3 +274,14 @@
     success_msg: >-
       eth1 found.
   when: dual_corosync_rings
+
+# Ensure enable_hawk is set as a bool
+- name: Ensure enable_hawk is a boolean
+  ansible.builtin.assert:
+    that: enable_hawk is boolean
+    fail_msg: >-
+      The variable 'enable_hawk' is set to '{{ enable_hawk }}' but it should be
+      a boolean. When declaring the variable, use either 'ture' or 'false'
+      without the quotation marks, for example: 'enable_hawk: true'.
+    success_msg: >-
+      The variable 'enabled_hawk' is correctly set as a boolean.

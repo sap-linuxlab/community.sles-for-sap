@@ -29,61 +29,11 @@ A future release will support a fully idempotent approach which will compare the
 current cluster state with the desired state and only make changes when changes
 are required.
 
-## Package Requirements
-
-This role requires the following packages to be installed:
-
-* corosync
-* crmsh
-* fence-agents
-* ha-cluster-bootstrap
-* pacemaker
-* patterns-ha-ha_sles
-* resource-agents
-* cluster-glue
-* socat
-* libxml2-tools
-* ClusterTools2
-* SAPHanaSR
-* rsyslog
-
-For SLES 15.3 and earlier, some specific package versions are required:
-
-* SAPHanaSR >= 0.162.1
-* socat >= "1.7.3.2
-* ClusterTools2 >= 3.1.2
-* libxml2-tools >= 2.9.7
-
-For SLES 15.4 and later, the following specific package versions are required:
-
-* SAPHanaSR >= 0.162.1
-* socat >= 1.7.3.2
-* ClusterTools2 >= 3.1.2
-* libxml2-tools >= 2.9.14
-
-GCP has the following additional package requirements:
-
-* python3-httplib2
-* python3-google-auth-httplib2
-* python3-google-api-python-client
-
-Azure has the following additional package requirements:
-
-* python3-azure-mgmt-compute
-* python3-azure-identity
-
-## Expectations
+## Expectation
 
 The following expectation must be met for this role to work correctly. Where
 possible, expectations are tested during the pre-checks phase, however, it is
 not always practical or possible to check expectations.
-
-### General expectations
-
-Currently, the role can only run with two hosts. Ensure the role is called with
-a playbook that only sources two hosts only.
-
-To create multiple clusters, the role must be run once for each cluster.
 
 ### Azure Expectations
 
@@ -93,7 +43,8 @@ To deploy the role for Azure, you should ensure that you have followed the
 This role expects the following:
 
 * If using Azure native fencing, ensure that you are using a service principle.
-  Managed Identity may be supported in the future.
+  Managed Identity may be supported in the future.git fetch origin
+git checkout add-option-to-enable-and-start-hawk
 * Ensure that health probes are set to the correct port of 625\<SAP Instance Number\>.
   For example, if using the an instance number of 40, the health probe should be
   set to 625**40**
@@ -168,10 +119,12 @@ specific variables.
   failover. By default `auto_register` is set to `false` and registration must
   be done manually. However, setting `auto_register` to `true` will enable
   automatic registration.
+* enable_hawk - bool - controls if the hawk daemon should be started and
+  enabled. By default, `enable_hawk` is disabled.
 
 ### Required Variables for Azure Fence Agent
 
-To create the Azure Fence Agent, follow the instructions[here](https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker#use-an-azure-fence-agent-1).
+To create the Azure Fence Agent, follow the instructions [here](https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker#use-an-azure-fence-agent-1).
 Currently, this role supports the Azure Fence Agent when using a service
 principle, although managed identity may be supported in the future. When using
 the Azure Fence Agent the following variables are required. The
@@ -186,7 +139,7 @@ the Azure Fence Agent the following variables are required. The
 
 ### Required Variables for GCP
 
-There are no specific requirements for GCP.
+There are no specific variable requirements for GCP.
 
 ### Required Variables for AWS
 
