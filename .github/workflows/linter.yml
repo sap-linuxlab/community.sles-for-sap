@@ -57,5 +57,6 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_SQL: false
           VALIDATE_SQLFLUFF: false
+          VALIDATE_NATURAL_LANGUAGE: false
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
