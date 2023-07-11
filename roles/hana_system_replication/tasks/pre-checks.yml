@@ -236,6 +236,7 @@
       check_mode: false
       no_log: true
 
+
     - name: Read tenant information
       community.general.read_csv:
         path: "{{ int_fact_sys_rep_tier_count_result_file }}"

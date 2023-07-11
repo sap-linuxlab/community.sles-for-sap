@@ -24,7 +24,7 @@ cluster_config:
         name: 'op start'
         interval: '0'
         timeout: '180'
-      _:
+      op_stop:
         name: 'op stop'
         interval: '0'
         timeout: '180'

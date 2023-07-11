@@ -153,6 +153,7 @@
       check_mode: false
       no_log: true
 
+
     - name: Read SAP HANA System Replication configuration
       community.general.read_csv:
         path: "{{ int_fact_pre_sys_rep_general_result_file }}"

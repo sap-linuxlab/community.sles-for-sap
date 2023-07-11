@@ -27,6 +27,6 @@
     that: int_fact_post_registration_status == 'Registered'
     success_msg: "The system is registered"
     fail_msg: >
-      Registration appears to have been unsuccessful, check the output of the
-      registration command and ensure the registration code is correct.
+      SUSEConnect reports that the host is not registered. This could be a
+      problem with your registration code or the registration process.
   when: not ansible_check_mode

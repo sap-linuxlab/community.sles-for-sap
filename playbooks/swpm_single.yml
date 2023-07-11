@@ -1,0 +1,28 @@
+---
+- name: Use SWPM role
+  hosts: app
+  any_errors_fatal: true
+  remote_user: my_ansible_user
+  become: true
+  vars:
+    sapcar_exe: '/media/sapcar'
+    sapinst_sar: '/media/SWPM20SP14_2-80003424.SAR'
+    install_mode: 'guided'
+    guided_product_id: 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP'
+    guided_s4_sid: 'S41'
+    guided_master_password: 'DontUseThisPassw0rd'
+    guided_ascs_instance_number: '00'
+    guided_ci_instance_number: '01'
+    guided_hana_hostname: 'hanasrv01'
+    guided_hana_sid: 'HN1'
+    guided_hana_instance: '00'
+    guided_hana_systemdb_system_password: 'DontUseThisPassw0rd'
+    guided_sapexe_sar_path: '/media/SAPEXE_100-70006642.SAR'
+    guided_igs_sar_path: '/media/igsexe_2-70005417.sar'
+    guided_igs_helper_sar_path: '/media/igshelper_17-10010245.sar'
+    guided_sapexedb_sar_path: '/media/SAPEXEDB_100-70006641.SAR'
+    guided_media_path: '/media'
+    guided_hana_admin_user_password: 'DontUseThisPassw0rd'
+
+  roles:
+    - { role: swpm_single }

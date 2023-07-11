@@ -1,0 +1,6 @@
+# Guided defaults for onehost S4
+guided_network_domain: "{{ ansible_facts['domain'] }}"
+guided_ascs_virtual_hostname: "{{ ansible_facts['hostname'] }}"
+guided_ci_virtual_hostname: "{{ ansible_facts['hostname'] }}"
+guided_scs_virtual_hostname: "{{ ansible_facts['hostname'] }}"
+guided_hana_tenant_sid: "{{ guided_hana_sid }}"

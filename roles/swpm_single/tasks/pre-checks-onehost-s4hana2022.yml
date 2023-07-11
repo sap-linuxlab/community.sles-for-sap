@@ -1,0 +1,72 @@
+---
+- name: Assert that there is only one host in the play
+  ansible.builtin.assert:
+    that: "{{ ansible_play_hosts | length }} == 1"
+    fail_msg: >-
+      When running a guided install of a OneHost solution, only one play hosts
+      is expected. Ensure that only one host is selected in the play when
+      running this role.
+    success_msg: >-
+      The correct number of hosts are in the play (one).
+
+- name: Ensure that required variables are defined for NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP
+  ansible.builtin.assert:
+    that: "{{ item }} is defined"
+    fail_msg: >-
+      The variable '{{ item }}' is requred when running a guided install of
+      NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP but it is not currently defined.
+      Ensure that this variable is defined before re-running the role.
+    success_msg: >-
+      The variable '{{ item }}' is defined.
+  loop: "{{ int_var_guided_s4hana2022_onehost_required_variables }}"
+  when:
+    - install_mode == 'guided'
+    - guided_product_id == 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP'
+
+### Check the content of the variables
+
+- name: Ensure provided SIDs are compliant
+  ansible.builtin.assert:
+    that:
+      "{{ item }} is ansible.builtin.regex('^[A-Z]{1}[A-Z0-9]{2}$')"
+    fail_msg: >-
+      The variable '{{ item }}' must consist of three characters. Characters
+      must be uppercase alphabetical characters or numbers only. The first
+      character may only be an alphabetical character. The current pattern
+      is not compliant.
+    success_msg: >-
+      '{{ item }}' matches the required pattern.
+  loop:
+    - guided_s4_sid
+    - guided_hana_sid
+    - guided_hana_tenant_sid
+
+- name: Ensure provided SIDs are not restricted
+  ansible.builtin.assert:
+    that:
+      "{{ item }} not in int_var_reserved_sids"
+    fail_msg: >-
+      The variable '{{ item }}' is currently set to a reserved value that may
+      not be used. Change this to an allowed SID before re-running the role
+    success_msg: >-
+      '{{ item }}' is not a restricted SID.
+  loop:
+    - guided_s4_sid
+    - guided_hana_sid
+    - guided_hana_tenant_sid
+
+- name: Check instance numbers are compliant
+  ansible.builtin.assert:
+    that:
+      - "{{ item }} is ansible.builtin.regex('^[0-9]{2}$')"
+      - "{{ item }} != '99'"
+    fail_msg: >-
+      The variable '{{ item }}' must be a string consisting of two numbers.
+      All combination apart from '99' are allowed. The current pattern
+      is not compliant.
+    success_msg: >-
+      '{{ item }}' matches the required pattern.
+  loop:
+    - guided_ascs_instance_number
+    - guided_ci_instance_number
+    - guided_hana_instance

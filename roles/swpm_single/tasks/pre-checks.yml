@@ -1,0 +1,89 @@
+---
+- name: Assert the required variables exists
+  ansible.builtin.assert:
+    that: "{{ item }} is defined"
+    fail_msg: >-
+      The variable {{ item }} must be defined. Ensure the variable is defined
+      before re-running the role.
+    success_msg: >-
+      The variable {{ item }} is defined
+  loop: "{{ int_var_required_variables }}"
+
+- name: Check install mode is supported
+  ansible.builtin.assert:
+    that: "'{{ install_mode }}' in int_var_install_mode_support"
+    fail_msg: >-
+      The variable 'install_mode' is set to {{ install_mode }}. This is not a
+      supported value. Check the documentation and set the variable correctly
+      before re-running the role
+    success_msg: >-
+      The variable 'install_mode' is set to a supported value
+      ({{ install_mode }}).
+
+- name: Assert sapcar_exe is a full path
+  ansible.builtin.assert:
+    that: "'{{ sapcar_exe }}' is ansible.builtin.regex('^/')"
+    fail_msg: >-
+      The variable sapcar_exe must be a full path to the sapcar binary. The
+      value supplied is not a full path (it doesn't being with '/'). Ensure
+      a full path is supplied before re-running this role.
+    success_msg: >-
+      The variable sapcar_exe is a full path
+
+- name: Get that sapcar binary stat data
+  ansible.builtin.stat:
+    path: ${sapcar_exe}
+
+- name: Check HANA host for HANA SystemDB port
+  ansible.builtin.wait_for:
+    host: "{{ guided_hana_hostname }}"
+    port: "3{{ guided_hana_instance }}13"
+    state: 'started'
+    timeout: 5
+  register: int_reg_hana_port
+  changed_when: false
+  ignore_errors: true
+
+- name: Assert that HANA port is open
+  ansible.builtin.assert:
+    that: not int_reg_hana_port.failed
+    fail_msg: >-
+      The SystemDB port '3{{ guided_hana_instance }}13' on the given hana host
+      '{{ guided_hana_hostname }}' does not appear to be up. Ensure that the
+      provided details are correct and that HANA instance is up. Ensure that
+      any firewalls between the hosts are permitting the required ports.
+    success_msg: >-
+      The SystemDB HANA port '3{{ guided_hana_instance }}13' on
+      '{{ guided_hana_hostname }}' could be reached.
+
+# Checks for guided mode
+
+- name: Assert that required guided mode variables are defined
+  ansible.builtin.assert:
+    that: "{{ item }} is defined"
+    fail_msg: >-
+      The variable '{{ item }}'' not defined. This variable is required when
+      'install_mode' is set to 'guided'. Ensure this variable is correctly set
+      before re-running the role.
+    success_msg: >-
+      The required variable '{{ item }} is defined'
+  loop: "{{ int_var_guided_required_variables }}"
+  when: install_mode == 'guided'
+
+- name: Assert guided product is supported
+  ansible.builtin.assert:
+    that: "'{{ guided_product_id }}' in int_var_guided_product_support"
+    fail_msg: >-
+      The product ID specified in the variable '{{ guided_product_id }}' is not
+      supported. Check the role documentation for a list of supported product
+      IDs.
+    success_msg: >-
+      The supplied product_id ({{ guided_product_id }}) is supported by the
+      role.
+  when: install_mode == 'guided'
+
+- name: Run NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP Pre-Checks
+  ansible.builtin.import_tasks: pre-checks-onehost-s4hana2022.yml
+  when:
+    - install_mode == 'guided'
+    - guided_product_id == 'NW_ABAP_OneHost:S4HANA2022.CORE.HDB.ABAP'

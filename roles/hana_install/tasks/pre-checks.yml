@@ -139,6 +139,13 @@
       - hana_master_password is ansible.builtin.regex('[a-z]+')
       - hana_master_password is ansible.builtin.regex('[A-Z]+')
       - hana_master_password is ansible.builtin.regex('[0-9]+')
+    fail_msg: >-
+      The value of the variable 'hana_master_password' does not meet the minimum
+      criteria. HANA passwords must be at least 8 characters long and contain
+      1 uppercase character, 1 lowercase character and a number. Correct the
+      password before re-running the role.
+    success_msg: >-
+      The supplied hana master password meets the requirement.
 
 - name: Determine installation status
   ansible.builtin.stat:
