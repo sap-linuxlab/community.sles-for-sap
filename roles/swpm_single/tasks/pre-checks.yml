@@ -4,7 +4,7 @@
     that: "{{ item }} is defined"
     fail_msg: >-
       The variable {{ item }} must be defined. Ensure the variable is defined
-      before re-running the 'resourcepool.xml'
+      before re-running the role.
     success_msg: >-
       The variable {{ item }} is defined
   loop: "{{ int_var_required_variables }}"
@@ -34,6 +34,27 @@
   ansible.builtin.stat:
     path: ${sapcar_exe}
 
+- name: Check HANA host for HANA SystemDB port
+  ansible.builtin.wait_for:
+    host: "{{ guided_hana_hostname }}"
+    port: "3{{ guided_hana_instance }}13"
+    state: 'started'
+    timeout: 5
+  register: int_reg_hana_port
+  changed_when: false
+  ignore_errors: true
+
+- name: Assert that HANA port is open
+  ansible.builtin.assert:
+    that: not int_reg_hana_port.failed
+    fail_msg: >-
+      The SystemDB port '3{{ guided_hana_instance }}13' on the given hana host
+      '{{ guided_hana_hostname }}' does not appear to be up. Ensure that the
+      provided details are correct and that HANA instance is up. Ensure that
+      any firewalls between the hosts are permitting the required ports.
+    success_msg: >-
+      The SystemDB HANA port '3{{ guided_hana_instance }}13' on
+      '{{ guided_hana_hostname }}' could be reached.
 
 # Checks for guided mode
 
