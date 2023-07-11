@@ -43,7 +43,8 @@ To deploy the role for Azure, you should ensure that you have followed the
 This role expects the following:
 
 * If using Azure native fencing, ensure that you are using a service principle.
-  Managed Identity may be supported in the future.
+  Managed Identity may be supported in the future.git fetch origin
+git checkout add-option-to-enable-and-start-hawk
 * Ensure that health probes are set to the correct port of 625\<SAP Instance Number\>.
   For example, if using the an instance number of 40, the health probe should be
   set to 625**40**
@@ -118,6 +119,8 @@ specific variables.
   failover. By default `auto_register` is set to `false` and registration must
   be done manually. However, setting `auto_register` to `true` will enable
   automatic registration.
+* enable_hawk - bool - controls if the hawk daemon should be started and
+  enabled. By default, `enable_hawk` is disabled.
 
 ### Required Variables for Azure Fence Agent
 

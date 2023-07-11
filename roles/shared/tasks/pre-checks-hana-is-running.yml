@@ -1,0 +1,30 @@
+- name: Get HANA status
+  ansible.builtin.shell: >-
+    . ~/.bashrc &&
+    sapcontrol -nr {{ hana_instance_number }} -function GetProcessList
+  become: true
+  become_user: "{{ hana_sid | lower }}adm"
+  register: int_reg_hana_status
+  changed_when: false
+  failed_when: false
+
+# Here we want to store all lines that start '^hdb' in a new fact
+- name: Parse HANA status output
+  ansible.builtin.set_fact:
+    int_fact_hana_status_lines: "{{ int_reg_hana_status.stdout | regex_findall('^hdb.*', multiline=true) }}"
+
+- name: Assert all HANA services are correctly started
+  ansible.builtin.assert:
+    that: "{{ (item | split(', '))[2] == 'GREEN' }}"
+    fail_msg: >-
+      The service '{{ (item | split(', '))[0] }}' has a status of
+      '{{ (item | split(', '))[2] }}'', but 'GREEN' was expected. This may be
+      because HANA is not started, is in the process of starting or shutting
+      down or that there is a problem with the installation. Ensure that HANA
+      is fully started before running the role again. Ensure that all services
+      report as 'GREEN' when running the command
+      'sapcontrol -nr {{ hana_instance_number }} -function GetProcessList' as
+      the '{{ hana_sid | lower }}adm' user on the HANA host
+    success_msg: >-
+      The HANA service {{ item }} is started.
+  loop: "{{ int_fact_hana_status_lines }}"

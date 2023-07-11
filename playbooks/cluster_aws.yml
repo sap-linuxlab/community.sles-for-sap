@@ -17,5 +17,6 @@
     aws_stonith_tag: '<your stonith tag>'
     aws_route_table_id: '<your route table id>'
     dual_corosync_rings: true
+    enable_hawk: true
   roles:
     - { role: ../roles/cluster }

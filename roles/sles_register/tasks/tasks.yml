@@ -16,6 +16,7 @@
   until: int_reg_registercloudguest_result is not failed
   retries: 6
   delay: 10
+  no_log: true
 
 - name: Register with SUSEConnect
   ansible.builtin.command: "SUSEConnect -r {{ reg_code }}"
@@ -26,3 +27,4 @@
   until: int_reg_suseconnect_result is not failed
   retries: 6
   delay: 10
+  no_log: true

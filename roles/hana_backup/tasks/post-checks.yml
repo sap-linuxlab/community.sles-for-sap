@@ -30,6 +30,7 @@
       # ultimately the output file is removed
       changed_when: false
       check_mode: false
+      no_log: true
 
     - name: Read tenant information
       community.general.read_csv:
@@ -73,6 +74,7 @@
       # ultimately the output file is removed
       changed_when: false
       check_mode: false
+      no_log: true
 
     - name: Read backup file information
       community.general.read_csv:

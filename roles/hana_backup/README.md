@@ -40,7 +40,7 @@ The following variables are optional:
 * backup_name - the label assigned to the backup, used mostly for reference.
   Default: ANSIBLE_INITIAL_BACKUP
 
-## Check mode
+## Check Mode
 
 The role supports ansible check mode. In check mode, no changes will be made to
 the system and no backups will be made. The task `Print required action` will

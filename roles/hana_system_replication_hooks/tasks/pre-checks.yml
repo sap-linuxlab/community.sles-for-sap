@@ -1,4 +1,25 @@
 ---
+- name: Ensure OS is SLES for sap
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-is-sles-for-sap.yml
+
+- name: Include hana sid and instance variables
+  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
+
+- name: Include hdbsql variables
+  ansible.builtin.include_vars: ../shared/vars/hdbsql-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
+
+- name: Ensure HANA is running
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-is-running.yml
+
+- name: Ensure password-free ssh login is available
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-ssh-password-free-login.yml
+
 - name: Assert that required variables are defined and populated
   ansible.builtin.assert:
     that:
@@ -29,18 +50,6 @@
   ansible.builtin.set_fact:
     int_var_node_is_primary: "{{ hana_system_replication_primary == inventory_hostname }}"
   check_mode: false
-
-- name: Include hana sid and instance variables
-  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
-
-- name: Include hana sid and instance checks
-  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
-
-- name: Include hdbsql variables
-  ansible.builtin.include_vars: ../shared/vars/hdbsql-vars.yml
-
-- name: Include hana sid and instance checks
-  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
 
 - name: Gather package facts
   ansible.builtin.package_facts:
@@ -142,6 +151,8 @@
         {{ int_var_hdbsql_path }} {{ int_var_hdbsql_args }} -I {{ int_fact_pre_sys_rep_general_query_file }} -o {{ int_fact_pre_sys_rep_general_result_file }}
       changed_when: false
       check_mode: false
+      no_log: true
+
 
     - name: Read SAP HANA System Replication configuration
       community.general.read_csv:

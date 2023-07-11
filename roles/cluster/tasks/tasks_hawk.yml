@@ -1,0 +1,13 @@
+- name: Start and enable hawk
+  ansible.builtin.systemd:
+    name: hawk.service
+    state: started
+    enabled: true
+  when: enable_hawk
+
+- name: Stop and disable hawk
+  ansible.builtin.systemd:
+    name: hawk.service
+    state: stopped
+    enabled: false
+  when: not enable_hawk

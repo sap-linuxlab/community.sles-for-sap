@@ -1,4 +1,25 @@
 ---
+- name: Ensure OS is SLES for sap
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-is-sles-for-sap.yml
+
+- name: Include hana sid and instance variables
+  ansible.builtin.include_vars: ../shared/vars/hana-sid-instance-vars.yml
+
+- name: Include hana sid and instance checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-sid-instance.yml
+
+- name: Include hdbsql variables
+  ansible.builtin.include_vars: ../shared/vars/hdbsql-vars.yml
+
+- name: Include hdbsql checks
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hdbsql.yml
+
+- name: Ensure HANA is running
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-hana-is-running.yml
+
+- name: Ensure password-free ssh login is available
+  ansible.builtin.include_tasks: ../shared/tasks/pre-checks-ssh-password-free-login.yml
+
 - name: Assert that required variables are defined
   ansible.builtin.assert:
     that: "{{ item }} is defined"
@@ -253,3 +274,14 @@
     success_msg: >-
       eth1 found.
   when: dual_corosync_rings
+
+# Ensure enable_hawk is set as a bool
+- name: Ensure enable_hawk is a boolean
+  ansible.builtin.assert:
+    that: enable_hawk is boolean
+    fail_msg: >-
+      The variable 'enable_hawk' is set to '{{ enable_hawk }}' but it should be
+      a boolean. When declaring the variable, use either 'ture' or 'false'
+      without the quotation marks, for example: 'enable_hawk: true'.
+    success_msg: >-
+      The variable 'enabled_hawk' is correctly set as a boolean.

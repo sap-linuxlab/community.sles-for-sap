@@ -1,6 +1,6 @@
 # SLES for SAP Ansible Roles
 
-![markdown badge](https://github.com/sap-linuxlab/community.sles-for-sap/actions/workflows/markdown-lint.yml/badge.svg)
+[![GitHub Super-Linter](https://github.com/sap-linuxlab/community.sles-for-sap/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 This collection of roles is currently in development
 
@@ -61,3 +61,13 @@ This project has used the following software version.
 * passlib 1.7.4 (installed with pip)
 
 We strongly recommend using these or newer versions when deploying.
+
+On SUSE Linux Enterprise Server 15 SP4 or newer, the requirements can be
+installed using the following commands:
+
+```shell
+# add Python 3 repository
+SUSEConnect -p sle-module-python3/15.4/x86_64
+# Install Python 3.10 and all other requirements
+sudo zypper in -y python310-pip && pip3 install -r requirements.txt
+```
