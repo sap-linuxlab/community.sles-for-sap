@@ -104,7 +104,7 @@
       # to the others
       when: int_var_node_is_primary
 
-    - name: Copy cluster secret
+    - name: Copy cluster secret to other hosts
       ansible.posix.synchronize:
         src: /etc/corosync/authkey
         dest: /etc/corosync/authkey

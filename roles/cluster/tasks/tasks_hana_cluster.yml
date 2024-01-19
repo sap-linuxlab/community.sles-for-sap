@@ -66,7 +66,7 @@
     crm cluster start
   when: int_var_node_is_primary
 
-- name: Ensure the cluster is started and is stable
+- name: Ensure the cluster is started and is stable for first node
   ansible.builtin.command: crm status
   changed_when: false
   register: int_reg_crm_status
@@ -99,7 +99,7 @@
   ansible.builtin.set_fact:
     int_fact_cluster_regex: "{{ ansible_play_hosts | length }} nodes configured"
 
-- name: Ensure the cluster is started and is stable
+- name: Ensure the cluster is started and is stable for second node
   ansible.builtin.command: crm status
   changed_when: false
   register: int_reg_crm_status
