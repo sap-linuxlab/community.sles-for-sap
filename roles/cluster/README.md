@@ -143,6 +143,7 @@ There are no specific variable requirements for GCP.
 
 ### Required Variables for AWS
 
+* aws_region - string - deployment region
 * aws_stonith_tag - string - When creating the AWS, some special tagging is
   required. The tag name created for the cluster must be passed to ansible
   here. See this
