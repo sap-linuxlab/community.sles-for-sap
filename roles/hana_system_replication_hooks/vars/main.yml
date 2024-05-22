@@ -40,7 +40,7 @@ int_var_global_suschksrv_hook:
   - { 'section': 'ha_dr_provider_suschksrv', 'option': 'provider', 'value': 'susChkSrv' }
   - { 'section': 'ha_dr_provider_suschksrv', 'option': 'path', 'value': '/usr/share/SAPHanaSR/' }
   - { 'section': 'ha_dr_provider_suschksrv', 'option': 'execution_order', 'value': '3' }
-  - { 'section': 'ha_dr_provider_suschksrv', 'option': 'action_on_loss=stop', 'value': 'stop' }
+  - { 'section': 'ha_dr_provider_suschksrv', 'option': 'action_on_lost=stop', 'value': 'stop' }
   - { 'section': 'trace', 'option': 'ha_dr_suschksrv = info', 'value': 'info' }
 
 int_var_trace_section_header: '[trace]'
