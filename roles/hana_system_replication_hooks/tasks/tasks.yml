@@ -87,7 +87,7 @@
       provider = susChkSrv
       path = /usr/share/SAPHanaSR/
       execution_order = 3
-      action_on_loss=stop
+      action_on_lost=stop
   check_mode: true
   changed_when: false
   register: int_reg_pre_global_suschksrv_hook
@@ -180,7 +180,7 @@
       provider = susChkSrv
       path = /usr/share/SAPHanaSR/
       execution_order = 3
-      action_on_loss=stop
+      action_on_lost=stop
   register: int_reg_pre_global_ini
   when: int_fact_suschksrv_hook_change
 
