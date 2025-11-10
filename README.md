@@ -1,5 +1,17 @@
 # SLES for SAP Ansible Roles
 
+> [!Warning]
+> This repository has been retired in favor of 
+> * [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) containing a lot of playbooks for SAP deployments and operations
+> * [community.sap_infrastructure](https://github.com/sap-linuxlab/community.sap_infrastructure) with roles for infrastructure-related tasks for SAP
+> * [community.sap_install](https://github.com/sap-linuxlab/community.sap_install) with roles for various SAP software installation tasks
+> * [community.sap_operations](https://github.com/sap-linuxlab/community.sap_operations) with roles for various operational tasks with SAP Systems
+> * and more repositories with the `community.sap_` prefix in the [sap-linuxlab]([https://github.com/sap-linuxlab](https://github.com/search?q=org%3Asap-linuxlab+%22community.sap_%22&type=repositories)) organization
+>
+> Please refer to these repositories instead for more functionality than this repository ever provided. 
+
+----
+
 [![GitHub Super-Linter](https://github.com/sap-linuxlab/community.sles-for-sap/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 This collection of roles is currently in development
